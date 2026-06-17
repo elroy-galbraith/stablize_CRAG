@@ -1,0 +1,26 @@
+Wrote 1371 rows -> results/stab_k5.csv
+
+========================================================================
+STABILIZATION SUMMARY  (n=1371 questions)
+========================================================================
+Groundable (gold answer found in pages): 485/1371 (35.4%)
+Gold retrieved in top-k at some prefix:  343/1371 (25.0%)
+
+[RQ1] phi_sc  (self-consistency): mean 0.666  median 0.727
+[RQ1] phi_suf (sufficiency, retrieved only): mean 0.248  median 0.125
+[RQ1] volatility: mean 0.52  (share with V>0: 20.9%)
+
+[RQ4] phi_suf by question_type (retrieved-gold questions):
+   false_premise      n=12   mean phi_suf=0.206
+   comparison         n=63   mean phi_suf=0.214
+   aggregation        n=40   mean phi_suf=0.222
+   multi-hop          n=16   mean phi_suf=0.226
+   simple             n=139  mean phi_suf=0.230
+   set                n=2    mean phi_suf=0.281
+   simple_w_condition n=62   mean phi_suf=0.329
+   post-processing    n=9    mean phi_suf=0.430
+
+[RQ2] streamable fraction at L=600ms, delta=3.0 w/s, theta=0.8: 1020/1371 (74.4%)
+      (streamable = at least theta*L of tool latency hideable behind input)
+
+Wrote aggregate summary -> results/stab_k5.summary.json

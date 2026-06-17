@@ -1,0 +1,22 @@
+[project]
+name = "stabilize-crag"
+version = "0.1.0"
+description = "Tool-intent stabilization study on CRAG (RQ1-RQ4); see PROPOSAL.md"
+requires-python = ">=3.10"
+# Core run is pure stdlib + the vendored streaming_rag.py harness — no runtime deps.
+dependencies = []
+
+[project.optional-dependencies]
+# Cleaner HTML extraction than the stdlib HTMLParser fallback in crag.html_to_text.
+html = ["beautifulsoup4>=4.12"]
+# Enables run_study.py --plot (phi distribution histogram).
+plot = ["matplotlib>=3.8"]
+# Convenience: everything optional that the current pipeline can use.
+all = ["beautifulsoup4>=4.12", "matplotlib>=3.8"]
+
+# NOT YET WIRED (see PROPOSAL.md §5/§7): the dense-retriever condition (H4) would
+# add sentence-transformers + torch, and the RQ4 phi-on-features regression would
+# add a stats lib (e.g. statsmodels/scikit-learn). Add as extras when implemented.
+
+[tool.uv]
+package = false
