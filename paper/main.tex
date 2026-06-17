@@ -39,6 +39,18 @@
 \newcommand{\rqThreeN}{60}
 \newcommand{\measSaved}{1122}
 \newcommand{\hPred}{590}
+\newcommand{\rqThreeRho}{-0.06}      % Spearman(residual input time, measured saving) %
+% RQ2 population split (central cell L=600, delta=3, theta=0.8)
+\newcommand{\streamSufPct}{95.2\%}   % streamable among retrieved-gold, using t_suf (n=292) %
+\newcommand{\streamScPct}{68.1\%}    % streamable among fallback, using t_sc (n=1079) %
+% RQ4 significance
+\newcommand{\kwAllH}{17.0}           % Kruskal-Wallis H, all 8 types %
+\newcommand{\kwAllP}{0.017}
+\newcommand{\kwBigH}{13.9}           % Kruskal-Wallis H, 5 classes with n>=10 %
+\newcommand{\kwBigP}{0.008}
+% Arora et al. per-stage latencies used to calibrate RQ3 (ms)
+\newcommand{\qgenMs}{590}            % query generation %
+\newcommand{\fuseMs}{2520}           % fuse/reflect %
 % ===================================================================== %
 
 \begin{document}
@@ -54,16 +66,20 @@ We isolate and measure this property---\textbf{tool-intent stabilization}, the
 point in the input stream at which a speculative query's retrieval converges to
 the answer-bearing result. On the CRAG benchmark (\nSplitZero{} validation
 questions) we (i) measure the distribution of stabilization, (ii) derive a
-model-agnostic upper bound on achievable latency savings as a function of tool
-latency $L$ and input cadence $\delta$, (iii) validate that bound against a
-working streaming pipeline, and (iv) identify which query properties predict
-early versus late stabilization. The study requires no model training and runs
-on commodity CPU hardware. We find that sufficiency stabilizes early for most
-answerable questions (mean $\phi_{\mathrm{suf}}=\phiSufMean{}$), that a large
-majority of queries (\streamPct{}) admit substantial latency hiding at realistic
-operating points, and that question type is a strong, ordered predictor of
-stabilization---directly informing when a learned speculative trigger is worth
-its cost.
+model-agnostic bound $H$ on the portion of tool latency that can be hidden behind
+the user's remaining input, as a function of tool latency $L$ and input cadence
+$\delta$, (iii) validate against a working streaming pipeline that realized
+savings meet or exceed this bound, and (iv) identify which query properties
+predict early versus late stabilization. The study requires no model training and
+runs on commodity CPU hardware. We find that sufficiency stabilizes early on the
+groundable, BM25-retrievable subset of the benchmark (mean
+$\phi_{\mathrm{suf}}=\phiSufMean{}$ over the \nRetrPct{} of questions where gold
+evidence is both verbatim-present and retrievable), that \streamPct{} of queries
+admit substantial latency hiding at a realistic operating point---\streamSufPct{}
+of the retrieved-gold subset and \streamScPct{} of the remainder---and that
+question type is an ordered predictor of stabilization (Kruskal--Wallis
+$p=\kwAllP{}$), directly informing when a learned speculative trigger is worth its
+cost.
 \end{abstract}
 
 \section{Introduction}
@@ -86,8 +102,9 @@ decisive term arrives early, almost the entire tool latency can be hidden behind
 the remaining input.
 
 We study this directly. By characterizing tool-intent stabilization as a
-measurable, query-intrinsic quantity, we obtain (i) a predictive upper bound on
-achievable latency savings \emph{before} any system is built; (ii) a principled
+measurable, query-intrinsic quantity, we obtain (i) a model-agnostic bound on the
+share of tool latency that can be hidden behind ongoing input, computable
+\emph{before} any system is built; (ii) a principled
 account of the failure mode; (iii) actionable guidance on whether a learned
 trigger is worth its cost; and (iv) results that transfer across text and speech
 because the quantity is modality-agnostic. Our contribution is measurement and
@@ -107,8 +124,10 @@ call. Our analysis is orthogonal to the system: we quantify the headroom that an
 such system can exploit, set by the query alone.
 
 \section{Problem Formalization}
-Let a query $Q$ be a token sequence $q_{1:n}$ of length $n$, and let $q_{1:t}$
-denote the prefix of the first $t$ tokens. Let $R$ be a retriever returning a
+Let a query $Q$ be a word sequence $q_{1:n}$ of length $n$ words, and let $q_{1:t}$
+denote the prefix of the first $t$ words (we measure stabilization in words
+throughout, matching the whitespace tokenization used by both the retriever and
+the input-cadence model below). Let $R$ be a retriever returning a
 ranked document list; write $d_t = \mathrm{top\text{-}1}(R(q_{1:t}))$ for the top
 document retrieved from the prefix, $d_n$ for the full-query top document, and
 $d^\star$ for the gold answer-bearing document.
@@ -132,16 +151,41 @@ confident-looking early result that a later token would overturn.
 
 \paragraph{Hidden latency.}
 \begin{equation}
-H(Q; L, \delta) = \min\!\big(L,\; \max(0, (n - t^\star)\cdot \delta)\big),
+H(Q; L, \delta) = \min\!\Big(L,\; \max\!\big(0,\; \tfrac{n - t^\star}{\delta}\big)\Big),
 \end{equation}
-where $L$ is tool latency and $\delta$ is the per-token arrival interval. $H$ is
-the portion of tool latency that completes behind the user's remaining input---the
-achievable per-query perceived-latency saving.
+where $L$ is tool latency (ms) and $\delta$ is the input cadence in words per
+second, so that $(n-t^\star)/\delta$ is the residual input time (in seconds, scaled
+to ms) still to arrive after the query has stabilized. $H$ is the portion of tool
+latency that completes behind the user's remaining input. It bounds the
+\emph{input-hideable} component of the per-query perceived-latency saving---not the
+total saving, since a real pipeline can additionally overlap other costs (\S5.4).
+A slower cadence (smaller $\delta$) lengthens the residual and so raises $H$ when
+tool latency is the larger term.
 
 \paragraph{Streamable.} $\mathrm{Streamable}(Q; L, \delta, \theta)$ holds iff
 $H \geq \theta L$ for a coverage threshold $\theta$ (e.g.\ $\theta=0.8$ hides at
 least 80\% of tool latency). The streamable fraction of a workload is the central
 deployment-relevant statistic.
+
+\paragraph{Hypotheses.} The study is organized around four pre-registered
+hypotheses, each mapped to a research question (RQ) below.
+\begin{description}
+\item[H1 (RQ1).] The distribution of $\phi$ is bimodal: a large early-stabilizing
+  mass (decisive entity stated up front) plus a tail that stabilizes only near the
+  end (decisive term last).
+\item[H2 (RQ2).] For large tool latency $L$, the binding constraint on $H$ is the
+  residual input time $(n-t^\star)/\delta$ rather than $L$; consequently a
+  \emph{slower} input cadence $\delta$ paradoxically \emph{raises} the hideable
+  fraction.
+\item[H3 (RQ4).] CRAG question type predicts $\phi$: simple lookups stabilize
+  early, while comparison, aggregation, multi-hop, and post-processing queries
+  stabilize late.
+\item[H4 (robustness).] Switching from sparse (BM25) to dense retrieval shifts
+  absolute $t^\star$ but preserves the ordering of $\phi$ across types.
+\end{description}
+We test H1--H3 directly (\S5); the dense-retriever condition for H4 is left to
+future work, and we instead report a top-$k$ robustness sweep (\S\ref{sec:method},
+Table~\ref{tab:topk}) as a within-retriever sensitivity check.
 
 \section{Method}\label{sec:method}
 \paragraph{Data.} We use CRAG, the Comprehensive RAG
@@ -160,6 +204,15 @@ $t_{\mathrm{suf}}$; we report the groundable rate explicitly. Because
 $t_{\mathrm{sc}}$ requires no grounding, we report it as a grounding-free
 robustness check alongside $t_{\mathrm{suf}}$.
 
+String grounding is a recall-oriented heuristic and can produce false positives:
+a single-token gold answer (a year, a number, ``yes''/``no'') may match a passage
+\emph{coincidentally}, registering sufficiency before the genuinely
+answer-bearing evidence arrives and biasing $t_{\mathrm{suf}}$---and thus
+$\phi_{\mathrm{suf}}$---\emph{early}. Multi-token answers, which require a contiguous
+substring match, are far less prone to this. We therefore read $\phi_{\mathrm{suf}}$
+as a lower bound on stabilization time on the groundable subset, and treat the
+early-stabilization finding as directionally robust rather than exact.
+
 \paragraph{Passages and retrieval.} Page HTML is cleaned to text and chunked into
 overlapping 120-word windows. We index each question's passages with
 BM25~\cite{robertson2009bm25} and retrieve over every prefix $q_{1:t}$,
@@ -173,8 +226,16 @@ $L\in\{100,300,600,1000\}$\,ms, $\delta\in\{2,3,4\}$\,w/s, $\theta\in\{0.5,0.8,1
 to obtain the streamable surface (RQ2). For RQ3 we replay a subset of questions
 through a faithful asynchronous Streaming RAG harness (fixed-interval Trigger,
 parallel Threads, Reflector) calibrated with the per-stage latencies reported by
-\citet{arora2025streamrag}, and compare the \emph{measured} perceived-latency
-saving (baseline minus streaming) against the $H$ bound.
+\citet{arora2025streamrag} (Table~3): query generation $\approx\qgenMs{}$\,ms and
+fuse/reflect $\approx\fuseMs{}$\,ms, in addition to the swept tool latency $L$. We
+compare the \emph{measured} perceived-latency saving (baseline minus streaming)
+against the $H$ bound.
+
+\paragraph{Reproducibility.} The pipeline is training-free and CPU-only. We release
+the harness code together with the derived $d^\star$ passage labels (the only
+non-trivial artifact, since CRAG ships none), so that every per-question metric and
+the full $(L,\delta,\theta)$ grid can be recomputed offline without re-running
+retrieval.
 
 % ===================================================================== %
 \input{results.tex}
@@ -197,12 +258,19 @@ set are natural extensions.
 
 \section{Conclusion}
 Tool-intent stabilization is a query-intrinsic, model-agnostic quantity that
-predicts when streaming tool use can help and by how much. On CRAG it is early for
-most answerable questions and strongly ordered by question type, the $H$ bound is
-a conservative predictor of realized savings, and the streamable fraction is high
-at realistic operating points. These results give system builders a principled,
-training-free basis for trigger design and a build/skip decision for a learned
-trigger.
+bounds when streaming tool use can help and by how much. On CRAG, sufficiency
+stabilizes early on the groundable, retrievable subset and is ordered by question
+type (Kruskal--Wallis $p=\kwAllP{}$); the $H$ bound is conservative, with realized
+savings on a working pipeline meeting or exceeding it; and the streamable fraction
+is high at realistic operating points. Two limitations temper these claims and set
+the agenda for follow-up: the sufficiency results are conditional on a favorable
+$\nRetrPct{}$ slice of the benchmark, and our system validation establishes
+conservativeness in aggregate but not per-query prediction, because the bound
+saturates at the operating point we replayed (\S5.4). A higher-$L$ replay, a
+dense-retriever condition (H4), and a regression of $\phi$ on query features are
+the natural next steps. Even so, the present results give system builders a
+principled, training-free basis for trigger design and a build/skip decision for a
+learned trigger.
 
 \bibliographystyle{plainnat}
 \bibliography{refs}
