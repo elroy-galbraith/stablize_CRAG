@@ -53,21 +53,34 @@ def fig_phi_distribution(rows):
 
 
 # --------------------------------------------------------------------------- #
-# Fig 2: phi_suf by question type (k=3), sorted, with counts                   #
+# Fig 2: phi_suf by question type (k=3), horizontal boxplot, sorted by median  #
 # --------------------------------------------------------------------------- #
-def fig_phi_by_type(summary):
-    rq4 = summary["rq4_phi_suf_by_question_type"]
-    items = sorted(rq4.items(), key=lambda kv: kv[1]["mean_phi_suf"])
-    labels = [k.replace("_", "\n") for k, _ in items]
-    means = [v["mean_phi_suf"] for _, v in items]
-    counts = [v["n"] for _, v in items]
-    fig, ax = plt.subplots(figsize=(7, 3.6))
-    bars = ax.bar(labels, means, color=NAVY, edgecolor="white")
-    for b, c in zip(bars, counts):
-        ax.text(b.get_x() + b.get_width() / 2, b.get_height() + 0.005,
-                f"n={c}", ha="center", va="bottom", fontsize=8)
-    ax.set_ylabel(r"mean $\phi_{suf}$")
-    ax.set_title("Sufficiency stabilization by question type (earlier $\\to$ later)")
+def fig_phi_by_type(rows):
+    from collections import defaultdict
+    by_type = defaultdict(list)
+    for r in rows:
+        v = fnum(r.get("phi_suf"))
+        if v is not None:
+            by_type[r["question_type"]].append(v)
+    items = sorted(by_type.items(), key=lambda kv: sorted(kv[1])[len(kv[1]) // 2])
+    labels = [k.replace("simple_w_condition", "simple w/\ncondition").replace("_", "\n") for k, _ in items]
+    data = [v for _, v in items]
+    counts = [len(v) for _, v in items]
+    fig, ax = plt.subplots(figsize=(6.5, 4.0))
+    bp = ax.boxplot(data, orientation="horizontal", patch_artist=True,
+                    boxprops=dict(facecolor="#9bb4c4", color=NAVY),
+                    medianprops=dict(color=NAVY, linewidth=2),
+                    whiskerprops=dict(color=NAVY),
+                    capprops=dict(color=NAVY),
+                    flierprops=dict(marker="o", markerfacecolor=RUST,
+                                   markersize=3, alpha=0.6, linestyle="none"))
+    ax.set_yticks(range(1, len(labels) + 1))
+    ax.set_yticklabels(labels, fontsize=9)
+    for i, (c, d) in enumerate(zip(counts, data), 1):
+        ax.text(max(d) + 0.025, i, f"n={c}", va="center", fontsize=8)
+    ax.set_xlabel(r"$\phi_{\mathrm{suf}}$  (stabilization fraction,  lower = earlier)")
+    ax.set_title("Sufficiency stabilization by question type ($k{=}3$)")
+    ax.set_xlim(0, 1.18)
     fig.tight_layout()
     fig.savefig(f"{FIGS}/phi_by_type.png", dpi=140)
     plt.close(fig)
@@ -165,7 +178,7 @@ def main():
     with open(f"{RESULTS}/stab_k3.summary.json") as f:
         summary_k3 = json.load(f)
     fig_phi_distribution(rows_k3)
-    fig_phi_by_type(summary_k3)
+    fig_phi_by_type(rows_k3)
     fig_rq2_surface(summary_k3)
     rows_by_L = {}
     for L, path in [(600.0, f"{RESULTS}/latency_k3.csv"),

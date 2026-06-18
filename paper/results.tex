@@ -52,7 +52,7 @@ early---while self-consistency ($\phi_{\mathrm{sc}}$, light) is late and broad.}
 
 \subsection{RQ4: What predicts early vs.\ late stabilization?}
 Question type is an ordered predictor of $\phi_{\mathrm{suf}}$, spanning a roughly
-threefold range (Table~\ref{tab:bytype}, Fig.~\ref{fig:bytype}). A Kruskal--Wallis
+threefold range (Fig.~\ref{fig:bytype}). A Kruskal--Wallis
 test across all eight types rejects equality of the $\phi_{\mathrm{suf}}$
 distributions ($H{=}\kwAllH{}$, $\mathrm{df}{=}7$, $p{=}\kwAllP{}$); restricting to
 the five classes with $n\ge10$---which carry the effect---the test is stronger
@@ -60,12 +60,12 @@ the five classes with $n\ge10$---which carry the effect---the test is stronger
 significant, is \emph{small}: the rank-based effect size is
 $\varepsilon^2{=}0.04$ (both for all eight types and for the five large classes),
 i.e.\ question type explains on the order of $4\%$ of the rank variance in
-$\phi_{\mathrm{suf}}$. Consistent with a small effect, the bootstrap $95\%$
-confidence intervals in Table~\ref{tab:bytype} overlap substantially for
-adjacent types: the ordering is reliable only at the extremes (\emph{aggregation}
-and \emph{comparison} earliest, \emph{set} latest), not as a strict cell-by-cell
-ranking, and the small-support types (\texttt{set} $n{=}2$, \texttt{post-processing}
-$n{=}5$) have intervals too wide to place. A Dunn's post-hoc with Holm correction
+$\phi_{\mathrm{suf}}$. Consistent with a small effect, the interquartile ranges in Fig.~\ref{fig:bytype}
+overlap substantially for adjacent types: the ordering is reliable only at the
+extremes (\emph{aggregation} and \emph{comparison} earliest, \emph{set} latest),
+not as a strict cell-by-cell ranking, and the small-support types
+(\texttt{set} $n{=}2$, \texttt{post-processing} $n{=}5$) have too few points to
+place reliably. A Dunn's post-hoc with Holm correction
 makes this precise: \emph{no} pairwise contrast survives at $\alpha{=}0.05$ (the
 closest, \texttt{simple} vs.\ \texttt{aggregation}, reaches $p_{\mathrm{Holm}}{=}0.05$).
 The omnibus effect is therefore carried by the overall rank distribution, not by any
@@ -86,34 +86,14 @@ account is carried by the well-populated classes (\texttt{simple},
 \texttt{comparison}, \texttt{aggregation}, \texttt{simple\_w\_condition}), so it
 does not hinge on the noisy small-$n$ cells.
 
-\begin{table}[t]
-\centering
-\caption{Sufficiency stabilization by CRAG question type ($k{=}3$, retrieved-gold
-questions), sorted earliest to latest. The last column is a bootstrap $95\%$ CI for
-the mean ($10{,}000$ resamples); intervals overlap heavily for adjacent types, so
-only the extreme contrasts are reliable.}
-\label{tab:bytype}
-\begin{tabular}{lrrc}
-\toprule
-question type & $n$ & mean $\phi_{\mathrm{suf}}$ & 95\% CI \\
-\midrule
-aggregation          & 32  & 0.198 & [0.13, 0.28] \\
-comparison           & 59  & 0.210 & [0.16, 0.27] \\
-multi-hop            & 15  & 0.267 & [0.14, 0.42] \\
-simple               & 118 & 0.280 & [0.24, 0.33] \\
-false\_premise       & 9   & 0.289 & [0.14, 0.48] \\
-simple\_w\_condition & 52  & 0.307 & [0.23, 0.40] \\
-post-processing      & 5   & 0.310 & [0.10, 0.52] \\
-set                  & 2   & 0.658 & [0.62, 0.70] \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.92\linewidth]{figures/phi_by_type.png}
-\caption{Mean $\phi_{\mathrm{suf}}$ by question type ($k{=}3$). Type spans a $3\times$
-range, but the ordering tracks entity position, not reasoning complexity.}
+\caption{Distribution of $\phi_{\mathrm{suf}}$ by question type ($k{=}3$, sorted by
+median). The $3\times$ range across medians is real, but box overlaps are large for
+adjacent types---only the extremes (\emph{aggregation}/\emph{comparison} earliest,
+\emph{set} latest) are reliably ordered. Ordering tracks entity position, not
+reasoning complexity.}
 \label{fig:bytype}
 \end{figure}
 
