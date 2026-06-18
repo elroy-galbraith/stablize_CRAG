@@ -2,14 +2,16 @@
 .venv/
 __pycache__/
 *.pyc
+
+# Local review archive — not for sharing
+_archive/
 # NOTE: uv.lock is intentionally NOT ignored — commit it to pin extra versions.
 
-# Large CRAG data download — CC BY-NC 4.0, fetch separately (see STUDY.md); never
-# commit. Also covers the regenerable synthetic fixture (make_fixture.py).
+# Large CRAG data — CC BY-NC 4.0, fetch separately (see docs/STUDY.md); never commit.
+# Place downloads in data/. Also covers the regenerable fixture (experiments/make_fixture.py).
 *.jsonl.bz2
 
-# Root-level scratch outputs from smoke tests. The canonical results that back the
-# paper live in results/ and ARE committed; these top-level ones are throwaway.
+# Scratch outputs — all runs write to results/ by default; ignore root-level strays.
 /stabilization.csv
 /latency_validation.csv
 /stabilization.summary.json

@@ -29,8 +29,9 @@ Self-consistency stabilizes \emph{late}: the lexical top-1 keeps changing until,
 on average, $\phi_{\mathrm{sc}}$ reaches mean \phiScMean{} (median \phiScMed{})---
 roughly three-quarters of the way through the query. Sufficiency, in contrast,
 stabilizes \emph{early}: the gold passage enters the top-$k$ at mean
-$\phi_{\mathrm{suf}}=\phiSufMean{}$ and median \phiSufMed{}. The gap is the central
-empirical observation of this study: \textbf{the answer-bearing document is
+$\phi_{\mathrm{suf}}=\phiSufMean{}$ and median \phiSufMed{}, bracketed to
+$[\phiSufMean{},\,\phiSufFuzzy{}]$ by a relaxed-grounding arm (\S\ref{sec:robust})---both early. The gap
+is the central empirical observation of this study: \textbf{the answer-bearing document is
 retrievable from a short prefix long before the query's lexical top-1 settles}.
 For streaming tool use this is the favorable regime---one need not wait for the
 utterance to ``finish'' for the right evidence to be in hand.
@@ -51,8 +52,8 @@ early---while self-consistency ($\phi_{\mathrm{sc}}$, light) is late and broad.}
 \end{figure}
 
 \subsection{RQ4: What predicts early vs.\ late stabilization?}
-Question type is an ordered predictor of $\phi_{\mathrm{suf}}$, spanning a roughly
-threefold range (Fig.~\ref{fig:bytype}). A Kruskal--Wallis
+Question type produces a coarse early/late split in $\phi_{\mathrm{suf}}$, spanning
+a roughly threefold range across medians (Fig.~\ref{fig:bytype}). A Kruskal--Wallis
 test across all eight types rejects equality of the $\phi_{\mathrm{suf}}$
 distributions ($H{=}\kwAllH{}$, $\mathrm{df}{=}7$, $p{=}\kwAllP{}$); restricting to
 the five classes with $n\ge10$---which carry the effect---the test is stronger
@@ -61,11 +62,11 @@ significant, is \emph{small}: the rank-based effect size is
 $\varepsilon^2{=}0.04$ (both for all eight types and for the five large classes),
 i.e.\ question type explains on the order of $4\%$ of the rank variance in
 $\phi_{\mathrm{suf}}$. Consistent with a small effect, the interquartile ranges in Fig.~\ref{fig:bytype}
-overlap substantially for adjacent types: the ordering is reliable only at the
-extremes (\emph{aggregation} and \emph{comparison} earliest, \emph{set} latest),
-not as a strict cell-by-cell ranking, and the small-support types
-(\texttt{set} $n{=}2$, \texttt{post-processing} $n{=}5$) have too few points to
-place reliably. A Dunn's post-hoc with Holm correction
+overlap substantially for adjacent types: the ordering is reliable only at the extremes (\emph{aggregation} and
+\emph{comparison} earliest, \emph{set} latest---\texttt{set} confirmed at
+$n{=}\nSetFuzzy{}$ under the relaxed-grounding arm, \S\ref{sec:robust}), not as a
+strict cell-by-cell ranking, and \texttt{post-processing} ($n{=}5$) has too few
+points to place reliably. A Dunn's post-hoc with Holm correction
 makes this precise: \emph{no} pairwise contrast survives at $\alpha{=}0.05$ (the
 closest, \texttt{simple} vs.\ \texttt{aggregation}, reaches $p_{\mathrm{Holm}}{=}0.05$).
 The omnibus effect is therefore carried by the overall rank distribution, not by any

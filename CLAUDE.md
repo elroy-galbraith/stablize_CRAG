@@ -8,9 +8,9 @@ A research harness that measures **tool-intent stabilization** on the CRAG
 benchmark: how early in a streaming query the retriever's intent "locks in," and
 how much tool/retrieval latency can therefore be hidden behind the user's
 remaining typing. It produces per-question metrics and the RQ1–RQ4 summary
-described in `STUDY.md`.
+described in `docs/STUDY.md`.
 
-`PROPOSAL.md` is the authoritative spec — read it for the *why*. It defines the
+`docs/PROPOSAL.md` is the authoritative spec — read it for the *why*. It defines the
 four research questions (RQ1 descriptive φ distribution; RQ2 streamable fraction
 vs. tool latency L and cadence δ; RQ3 validate the bound against the real
 pipeline; RQ4 which query features predict early vs. late stabilization) and the
@@ -20,30 +20,30 @@ volatility `V`, and the hidden-latency bound `H = min(L, max(0, (n−t*)·δ))`.
 The `run_study.py` CLI flags are the proposal's experimental-design factor grid:
 `--L` (tool latency), `--delta` (δ, input cadence words/sec), `--top-k`
 (sufficiency top-k), `--theta` (coverage threshold θ). Sweep them per the grid in
-PROPOSAL.md §7. **Not yet wired** (deliberately, to avoid heavy deps): the dense
+docs/PROPOSAL.md §8. **Not yet wired** (deliberately, to avoid heavy deps): the dense
 retriever condition (H4) and the φ-on-features regression (RQ4 explanatory).
 
 ## Critical external dependency
 
-`crag.py`/`stabilization.py`/`run_study.py` import from `streaming_rag.py` (the
-async streaming harness: `BM25`, `Config`, `DirectRetrievalBroker`,
-`run_baseline`, `run_streaming`). It is **vendored** into this repo (a self-contained,
-pure-stdlib file) so the study runs without any sibling checkout. Its source of
-truth is the separate `streamRAG` project; the file header documents this. If you
-re-vendor it, keep the paper-derived `Config` constants (`query_gen_ms`, `fuse_ms`
-from Arora et al. Table 3) — they drive the RQ3 latency validation, and an older
-harness without them makes RQ3 near-circular (see RQ3 note below).
+`experiments/crag.py`, `experiments/stabilization.py`, and `experiments/run_study.py`
+import from `experiments/streaming_rag.py` (the async streaming harness: `BM25`,
+`Config`, `DirectRetrievalBroker`, `run_baseline`, `run_streaming`). It is **vendored**
+into this repo (a self-contained, pure-stdlib file) so the study runs without any sibling
+checkout. Its source of truth is the separate `streamRAG` project; the file header
+documents this. If you re-vendor it, keep the paper-derived `Config` constants
+(`query_gen_ms`, `fuse_ms` from Arora et al. Table 3) — they drive the RQ3 latency
+validation, and an older harness without them makes RQ3 near-circular (see RQ3 note below).
 
 ## Commands
 
 ```bash
-# Smoke test — no CRAG download needed; writes synthetic crag_fixture.jsonl.bz2
-uv run make_fixture.py
-uv run run_study.py --data crag_fixture.jsonl.bz2 --split 0 --latency-n 5
+# Smoke test — no CRAG download needed; writes data/crag_fixture.jsonl.bz2
+uv run experiments/make_fixture.py
+uv run experiments/run_study.py --data data/crag_fixture.jsonl.bz2 --split 0 --latency-n 5
 
 # Real run (split 0 = validation set); --extra plot enables --plot
-uv run --extra plot run_study.py --data crag_task_1_and_2_dev_v4.jsonl.bz2 --split 0 \
-  --top-k 3 --L 600 --delta 3 --theta 0.8 --out stabilization.csv --plot
+uv run --extra plot experiments/run_study.py --data data/crag_task_1_and_2_dev_v4.jsonl.bz2 --split 0 \
+  --top-k 3 --L 600 --delta 3 --theta 0.8 --plot
 ```
 
 Plain `python3 run_study.py …` also works (core is stdlib-only). There is no build
@@ -56,15 +56,15 @@ test — use it to verify changes end-to-end.
   from this offline (RQ2 for *any* L/δ/θ, since it's arithmetic over `t_suf`/`t_sc`/`n_words`).
 - `--summary-json` → `stabilization.summary.json`: the aggregates (groundable rates,
   RQ1 φ/volatility stats, RQ4 by question_type, RQ2 at the configured point **and the
-  full PROPOSAL §7 (L,δ,θ) grid**, plus RQ3 if run), with a `params` block for provenance.
+  full PROPOSAL §8 (L,δ,θ) grid**, plus RQ3 if run), with a `params` block for provenance.
 - `--latency-csv` → `latency_validation.csv`: per-question RQ3
   (`measured_saved_ms` vs `H_predicted_ms`) — written only with `--latency-n`. This is
   the **only** result not recoverable from the per-question CSV, so it must be persisted.
 - `--plot` → `--plot-out` (`phi_distribution.png`): the φ_suf histogram.
 
-Get the CRAG data (CC BY-NC 4.0, research only):
+Get the CRAG data (CC BY-NC 4.0, research only) — place in `data/`:
 ```bash
-curl -L -o crag_task_1_and_2_dev_v4.jsonl.bz2 \
+curl -L -o data/crag_task_1_and_2_dev_v4.jsonl.bz2 \
   https://github.com/facebookresearch/CRAG/raw/refs/heads/main/data/crag_task_1_and_2_dev_v4.jsonl.bz2
 ```
 
@@ -72,7 +72,7 @@ Dependencies (uv): core has **zero** runtime deps. Optional extras in
 `pyproject.toml`: `[html]` (`beautifulsoup4` — cleaner HTML extraction than the
 stdlib `HTMLParser` fallback in `html_to_text`), `[plot]` (`matplotlib` — enables
 `--plot`), `[all]` (both). The dense-retriever (H4) and RQ4 regression deps are
-intentionally not declared yet (see PROPOSAL.md §5/§7).
+intentionally not declared yet (see docs/PROPOSAL.md §6/§8).
 
 ## RQ3 depends on the harness's latency model
 
@@ -90,16 +90,16 @@ rather than under-predict, fold `query_gen_ms` into the hideable budget in
 
 The pipeline is a stream of `CragExample`s flowing through three stages:
 
-1. `crag.py` — `load_crag()` streams the bz2 JSONL, cleans each search result's
-   HTML to text (`html_to_text`), chunks into overlapping word-windows
+1. `experiments/crag.py` — `load_crag()` streams the bz2 JSONL, cleans each search
+   result's HTML to text (`html_to_text`), chunks into overlapping word-windows
    (`chunk_text`), and grounds the gold answer string(s) into passages to derive
    `gold` (the answer-bearing passage ids, "d*"). `split=0` keeps validation
    rows; `None` keeps all.
-2. `stabilization.py` — `stabilization()` builds a `BM25` index over one
+2. `experiments/stabilization.py` — `stabilization()` builds a `BM25` index over one
    question's passages, retrieves over every query **prefix** `q[1:t]`, and
    computes `t_sc` (self-consistency), `t_suf` (sufficiency), `phi` = t*/n,
    `volatility`, and the hidden-latency bound `H` (`hidden_latency_ms`).
-3. `run_study.py` — driver. Per-question CSV + the RQ summary. RQ1 = phi/volatility,
+3. `experiments/run_study.py` — driver. Per-question CSV + the RQ summary. RQ1 = phi/volatility,
    RQ2 = streamable fraction at (L, delta, theta), RQ4 = phi_suf by question_type.
    `--latency-n N` runs RQ3: replays N questions through the async harness
    (`run_baseline` vs `run_streaming`) and compares measured perceived-latency
@@ -108,7 +108,7 @@ The pipeline is a stream of `CragExample`s flowing through three stages:
 ## The grounding caveat (must understand before reporting numbers)
 
 CRAG ships **no gold-passage label** — only gold answer strings. `gold_passage_ids`
-in `crag.py` derives d* by normalized string matching: substring match for
+in `experiments/crag.py` derives d* by normalized string matching: substring match for
 multi-token answers, word-boundary match for single-token answers, over `answer`
 + `alt_ans`. Implications baked into the metrics:
 

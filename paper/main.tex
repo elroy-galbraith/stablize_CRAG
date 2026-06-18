@@ -83,16 +83,19 @@ the user's remaining input, as a function of tool latency $L$ and input cadence
 $\delta$, (iii) validate against a working streaming pipeline that realized
 savings meet or exceed this bound, and (iv) identify which query properties
 predict early versus late stabilization. The study requires no model training and
-runs on commodity CPU hardware. We find that sufficiency stabilizes early on the
-groundable, BM25-retrievable subset of the benchmark (mean
-$\phi_{\mathrm{suf}}=\phiSufMean{}$ over the \nRetrPct{} of questions where gold
-evidence is both verbatim-present and retrievable); that on this subset
-\streamSufPct{} of queries admit substantial latency hiding at a realistic
-operating point (the headline \streamPct{} that also counts the remainder is
-dominated by a weaker, top-1-settling notion); and that question type produces a
-significant but coarse effect on stabilization (Kruskal--Wallis $p=\kwAllP{}$,
-$\varepsilon^2{=}0.04$)---a robust early/late split rather than a precise per-type
-order---directly informing when a learned speculative trigger is worth its cost.
+runs on commodity CPU hardware. All experiments use CRAG (English), BM25 retrieval,
+and a uniform-word-stream proxy for input cadence; speech is the motivating
+application but is not directly tested. We find that at a realistic operating
+point ($L{=}600$\,ms, $\delta{=}3$\,w/s, $\theta{=}0.8$), \streamPct{} of queries
+across the full benchmark admit substantial latency hiding---a blended figure that
+mixes sufficiency stabilization on the \nRetrPct{} of questions where gold evidence
+is verbatim-present and BM25-retrievable (\streamSufPct{} streamable on this
+favorable slice) with a grounding-free top-1-settling fallback on the remainder.
+On the favorable slice, $\phi_{\mathrm{suf}}$ is bracketed to
+$[\phiSufMean{},\,\phiSufFuzzy{}]$ by exact and relaxed grounding---both early.
+Question type produces a significant but coarse early/late split
+(Kruskal--Wallis $p=\kwAllP{}$, $\varepsilon^2{=}0.04$), directly informing when
+a learned speculative trigger is worth its cost.
 \end{abstract}
 
 \section{Introduction}
@@ -149,9 +152,9 @@ already restricts what can follow. \citet{kamide2003timecourse} extend this
 cross-linguistically: in head-final Japanese, case-marked pre-verbal arguments let
 comprehenders anticipate a forthcoming argument even before the verb (the head) is
 heard---\emph{pre-head} anticipation~\cite{kamide1999prehead}. This is the human
-analogue of firing a tool query from a prefix, and it carries a prediction we
-return to in H5: \emph{where} the disambiguating cue sits---which varies with word
-order and case morphology---governs how early intent stabilizes.
+analogue of firing a tool query from a prefix: \emph{where} the disambiguating
+cue sits---varying with word order and case morphology---governs how early intent
+stabilizes.
 
 \paragraph{Stabilization over a growing prefix.} The engineering counterpart---when
 a prediction over a growing input prefix becomes safe to commit---is the central
@@ -230,20 +233,11 @@ hypotheses, each mapped to a research question (RQ) below.
 \item[H3 (RQ4).] CRAG question type predicts $\phi$: simple lookups stabilize
   early, while comparison, aggregation, multi-hop, and post-processing queries
   stabilize late.
-\item[H4 (robustness).] Switching from sparse (BM25) to dense retrieval shifts
-  absolute $t^\star$ but preserves the ordering of $\phi$ across types.
-\item[H5 (cross-linguistic).] In verb-final (SOV) languages, queries whose tool
-  intent hinges on the predicate stabilize later in linear word order than in SVO
-  English; but early case morphology can restore earlier stabilization, so the
-  driving cue shifts from word position to morphology, and a case-blind lexical
-  retriever (BM25) stabilizes later on SOV input than a morphology-aware or dense
-  one.
 \end{description}
-We test H1--H3 directly (\S5); the dense-retriever condition (H4) and the
-cross-linguistic SOV condition (H5)---the latter requiring a natively authored
-verb-final QA set---are left to future work, and we instead report a top-$k$
-robustness sweep (\S\ref{sec:method}, Table~\ref{tab:topk}) as a within-retriever
-sensitivity check. We report outcomes
+We test H1--H3 directly (\S5), and we report a top-$k$ robustness sweep
+(\S\ref{sec:method}, Table~\ref{tab:topk}) as a within-retriever sensitivity
+check. Dense-retriever and cross-linguistic conditions are left to future work.
+We report outcomes
 including disconfirmations: H2 is confirmed, but H1 is \emph{falsified} (the
 distribution is right-skewed, not bimodal; \S5.1) and H3 is contradicted in
 direction (entity position, not reasoning complexity, governs the ordering;
@@ -308,10 +302,10 @@ fuse/reflect $\approx\fuseMs{}$\,ms, in addition to the swept tool latency $L$. 
 compare the \emph{measured} perceived-latency saving (baseline minus streaming)
 against the $H$ bound.
 
-\paragraph{Reproducibility.} The pipeline is training-free and CPU-only. We release
-the harness code together with the derived $d^\star$ passage labels (the only
-non-trivial artifact, since CRAG ships none), so that every per-question metric and
-the full $(L,\delta,\theta)$ grid can be recomputed offline without re-running
+\paragraph{Reproducibility.} The pipeline is training-free and CPU-only. Code and
+the derived $d^\star$ passage labels (the only non-trivial artifact, since CRAG
+ships none) are available at \url{[anonymized]}; every per-question metric and the
+full $(L,\delta,\theta)$ grid can be recomputed offline without re-running
 retrieval.
 
 % ===================================================================== %
@@ -321,27 +315,26 @@ retrieval.
 \section{Conclusion}
 Tool-intent stabilization is a query-intrinsic, model-agnostic quantity that
 bounds when streaming tool use can help and by how much. On CRAG, sufficiency
-stabilizes early on the groundable, retrievable subset and is ordered by question
-type (Kruskal--Wallis $p=\kwAllP{}$); the $H$ bound is conservative, with realized
-savings on a working pipeline meeting or exceeding it; and the streamable fraction
-is high at realistic operating points. Two limitations temper these claims, and we
-probed both rather than merely noting them. First, the sufficiency results are
-conditional on a favorable $\nRetrPct{}$ slice; a relaxed-grounding arm that expands
-the population by a sixth moves $\phi_{\mathrm{suf}}$ by under $0.02$
-(\S\ref{sec:robust}), so the early-stabilization finding is bounded as signal, not
-artifact---though a fuller recovery of the excluded population (dense or learned
-grounding) remains open. Second, our system validation establishes conservativeness in
-aggregate but \emph{not} per-query prediction: replaying the same questions at
-$L{=}1000$\,ms, where the bound is unsaturated, realized savings still do not track
-$H$ (Spearman $\rho{=}\rhoLk{}$), because a constant query-generation overlap dominates
-the saving and trigger mis-fires produce negative outcomes the floored bound cannot
-represent (\S5.4). The downside is real but, measured on both the favorable and the
-late-stabilizing fallback population, rare ($\approx\negRateSc{}$ net-negative at
-$L{=}600$). Closing the prediction gap---a model that folds in the query-generation
-overlap and a mis-fire penalty---together with a dense-retriever condition (H4), a
-cross-linguistic SOV condition (H5) testing whether the stabilization cue shifts
-from word order to case morphology, and a regression of $\phi$ on query features are
-the natural next steps. Even so, the present results give system builders a
+stabilizes early on the groundable, retrievable subset (mean
+$\phi_{\mathrm{suf}}$ bracketed to $[\phiSufMean{},\,\phiSufFuzzy{}]$ by exact and
+relaxed grounding, both early); question type produces a significant but coarse
+early/late split (Kruskal--Wallis $p=\kwAllP{}$, $\varepsilon^2{=}0.04$); and the
+$H$ bound is a conservative aggregate bound with realized savings meeting or
+exceeding it, at a streamable fraction of \streamPct{} across the full benchmark.
+Two limitations temper these claims, and we probed both rather than merely noting
+them. First, the sufficiency results are conditional on a favorable \nRetrPct{}
+slice; the relaxed-grounding arm brackets the population effect to under $0.02$ in
+$\phi_{\mathrm{suf}}$ (\S\ref{sec:robust}), bounding the finding as signal rather
+than artifact---though a fuller recovery (dense or learned grounding) remains open.
+Second, our system validation establishes conservativeness in aggregate but
+\emph{not} per-query prediction: at $L{=}1000$\,ms, realized savings do not track
+$H$ (Spearman $\rho{=}\rhoLk{}$), because a constant query-generation overlap
+dominates the saving and trigger mis-fires produce negative outcomes the floored
+bound cannot represent (\S5.4). The downside is real but rare
+($\approx\negRateSc{}$ net-negative at $L{=}600$). Closing the prediction
+gap---adding the query-generation overlap and a mis-fire penalty---together with a
+dense-retriever condition and a regression of $\phi$ on query features are the
+natural next steps. Even so, the present results give system builders a
 principled, training-free basis for trigger design and a build/skip decision for a
 learned trigger.
 
