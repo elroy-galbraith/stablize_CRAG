@@ -142,17 +142,36 @@ doing work that may be discarded; here the discarded work is a premature tool
 call. Our analysis is orthogonal to the system: we quantify the headroom that any
 such system can exploit, set by the query alone.
 
-\paragraph{Stabilization over a growing prefix.} The core object we study---when a
-prediction over a growing input prefix becomes safe to commit---is the central
+\paragraph{Incremental comprehension and anticipation.} That the referential
+intent of an utterance is fixed incrementally---often well before the utterance
+ends---is among the most robust findings in psycholinguistics.
+\citet{altmann1999incremental} showed that a verb such as ``eat'' directs
+anticipatory attention to edible objects before they are named, so partial input
+already restricts what can follow. \citet{kamide2003timecourse} extend this
+cross-linguistically: in head-final Japanese, case-marked pre-verbal arguments let
+comprehenders anticipate a forthcoming argument even before the verb (the head) is
+heard---\emph{pre-head} anticipation~\cite{kamide1999prehead}. This is the human
+analogue of firing a tool query from a prefix, and it carries a prediction we
+return to in H5: \emph{where} the disambiguating cue sits---which varies with word
+order and case morphology---governs how early intent stabilizes.
+
+\paragraph{Stabilization over a growing prefix.} The engineering counterpart---when
+a prediction over a growing input prefix becomes safe to commit---is the central
 question of \emph{simultaneous} and \emph{incremental} NLP. Simultaneous machine
 translation must decide, token by token, whether enough source has arrived to emit
 output: wait-$k$ and prefix-to-prefix policies~\cite{ma2019stacl} and learned
 read/write agents~\cite{gu2017simultaneous} trade latency against the risk of
 committing before the disambiguating word arrives---precisely our $L$-versus-residual
-tension. Incremental dialogue processing~\cite{schlangen2011incremental} formalizes
-the same prefix-monotonicity and revision concerns (its notion of an output that
-later input may \emph{revise} is our volatility $V$). Our contribution is to port
-this lens to \emph{tool/retrieval} intent: rather than learning a commit policy, we
+tension---and \citet{grissom2014dont} cast it as an agent that waits until it can
+confidently predict the sentence-final verb before committing, whose failure
+mode---premature commitment forcing revision---is exactly what our volatility $V$
+records. Closest to our measurement is incremental spoken language understanding:
+\citet{devault2011incremental} build a meaning frame from partial ASR and quantify
+understanding as a function of prefix length, and the incremental-unit
+framework~\cite{schlangen2011incremental} formalizes the same prefix-monotonicity
+and revision concerns. These efforts target a \emph{closed} intent or dialogue-act
+ontology. Our contribution is to port the lens to \emph{tool/retrieval} intent over
+an open-world knowledge benchmark: rather than learning a commit policy, we
 \emph{measure} the query-intrinsic point at which the retrieval target stabilizes,
 which upper-bounds what any such policy could hide.
 
@@ -216,10 +235,18 @@ a formal public pre-registration), each mapped to a research question (RQ) below
   stabilize late.
 \item[H4 (robustness).] Switching from sparse (BM25) to dense retrieval shifts
   absolute $t^\star$ but preserves the ordering of $\phi$ across types.
+\item[H5 (cross-linguistic).] In verb-final (SOV) languages, queries whose tool
+  intent hinges on the predicate stabilize later in linear word order than in SVO
+  English; but early case morphology can restore earlier stabilization, so the
+  driving cue shifts from word position to morphology, and a case-blind lexical
+  retriever (BM25) stabilizes later on SOV input than a morphology-aware or dense
+  one.
 \end{description}
-We test H1--H3 directly (\S5); the dense-retriever condition for H4 is left to
-future work, and we instead report a top-$k$ robustness sweep (\S\ref{sec:method},
-Table~\ref{tab:topk}) as a within-retriever sensitivity check. We report outcomes
+We test H1--H3 directly (\S5); the dense-retriever condition (H4) and the
+cross-linguistic SOV condition (H5)---the latter requiring a natively authored
+verb-final QA set---are left to future work, and we instead report a top-$k$
+robustness sweep (\S\ref{sec:method}, Table~\ref{tab:topk}) as a within-retriever
+sensitivity check. We report outcomes
 including disconfirmations: H2 is confirmed, but H1 is \emph{falsified} (the
 distribution is right-skewed, not bimodal; \S5.1) and H3 is contradicted in
 direction (entity position, not reasoning complexity, governs the ordering;
@@ -329,8 +356,10 @@ the saving and trigger mis-fires produce negative outcomes the floored bound can
 represent (\S5.4). The downside is real but, measured on both the favorable and the
 late-stabilizing fallback population, rare ($\approx\negRateSc{}$ net-negative at
 $L{=}600$). Closing the prediction gap---a model that folds in the query-generation
-overlap and a mis-fire penalty---together with a dense-retriever condition (H4) and a
-regression of $\phi$ on query features are the natural next steps. Even so, the present results give system builders a
+overlap and a mis-fire penalty---together with a dense-retriever condition (H4), a
+cross-linguistic SOV condition (H5) testing whether the stabilization cue shifts
+from word order to case morphology, and a regression of $\phi$ on query features are
+the natural next steps. Even so, the present results give system builders a
 principled, training-free basis for trigger design and a build/skip decision for a
 learned trigger.
 
