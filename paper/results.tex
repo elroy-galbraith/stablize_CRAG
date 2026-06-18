@@ -100,7 +100,7 @@ reasoning complexity.}
 \subsection{RQ2: What fraction of queries admit latency hiding?}
 Using $t^\star=t_{\mathrm{suf}}$ where available and falling back to
 $t_{\mathrm{sc}}$ otherwise, we compute the streamable fraction over the full
-$(L,\delta,\theta)$ grid (Table~\ref{tab:rq2}, Fig.~\ref{fig:rq2}). At the central
+$(L,\delta,\theta)$ grid (Fig.~\ref{fig:rq2}). At the central
 operating point ($L{=}600$\,ms, $\delta{=}3$\,w/s, $\theta{=}0.8$), \streamPct{} of
 queries admit hiding at least 80\% of tool latency.
 
@@ -146,30 +146,12 @@ time, so a \emph{slower} cadence \emph{raises} the streamable fraction: from
 $54.5\%$ at $\delta{=}4$\,w/s up to $73.9\%$ at $\delta{=}2$\,w/s. Faster typists
 and faster talkers leave less room to hide a slow tool.
 
-\begin{table}[t]
-\centering
-\caption{RQ2: streamable fraction (\%) at $\theta{=}0.8$ over the $(L,\delta)$ grid.
-Rows are tool latency $L$ (ms); columns are input cadence $\delta$ (words/sec).
-For large $L$, slower cadence (lower $\delta$) hides more (H2).}
-\label{tab:rq2}
-\begin{tabular}{lccc}
-\toprule
- & $\delta{=}2$ & $\delta{=}3$ & $\delta{=}4$ \\
-\midrule
-$L{=}100$  & 82.6 & 82.6 & 82.6 \\
-$L{=}300$  & 82.6 & 82.6 & 82.6 \\
-$L{=}600$  & 82.6 & 73.9 & 73.9 \\
-$L{=}1000$ & 73.9 & 63.3 & 54.5 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.78\linewidth]{figures/rq2_surface.png}
 \caption{Streamable fraction vs.\ tool latency $L$ at $\theta{=}0.8$, one line per
-cadence $\delta$. The curves separate only once $L$ is large enough for residual
-input time to bind; there, slower cadence dominates (H2).}
+cadence $\delta$, with exact values annotated. The curves separate only once $L$ is
+large enough for residual input time to bind; there, slower cadence dominates (H2).}
 \label{fig:rq2}
 \end{figure}
 

@@ -98,15 +98,28 @@ def fig_rq2_surface(summary, theta=0.8):
             by_delta[g["delta_wps"]].append((g["L_ms"], g["frac"]))
     fig, ax = plt.subplots(figsize=(6, 3.6))
     colors = ["#9bb4c4", NAVY, RUST]
+    # collect all series first so we can de-duplicate labels across lines
+    series = []
     for (d, pts), c in zip(sorted(by_delta.items()), colors):
         pts.sort()
+        series.append((d, pts, c))
+    annotated = set()  # (L, pct_str) already labelled
+    for d, pts, c in series:
         xs = [p[0] for p in pts]
         ys = [100 * p[1] for p in pts]
         ax.plot(xs, ys, marker="o", color=c, label=f"$\\delta$={d:g} w/s")
+        for x, y in zip(xs, ys):
+            key = (x, f"{y:.1f}")
+            if key in annotated:
+                continue
+            annotated.add(key)
+            ax.annotate(f"{y:.1f}%", xy=(x, y), xytext=(0, 6),
+                        textcoords="offset points", ha="center",
+                        fontsize=7.5, color="black")
     ax.set_xlabel("tool latency $L$ (ms)")
     ax.set_ylabel(f"streamable %  ($\\theta$={theta})")
     ax.set_title("Fraction of queries that admit latency hiding")
-    ax.set_ylim(0, 102)
+    ax.set_ylim(0, 108)
     ax.legend()
     fig.tight_layout()
     fig.savefig(f"{FIGS}/rq2_surface.png", dpi=140)
