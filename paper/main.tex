@@ -2,21 +2,19 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{lmodern}
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[review]{acl}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{microtype}
-\usepackage[numbers,square]{natbib}
-\usepackage[margin=1in]{geometry}
 \usepackage{xcolor}
-\usepackage[hidelinks]{hyperref}
 \usepackage{caption}
 
-\title{\textbf{When Does Streaming Tool Use Help?}\\[2pt]
-\large Characterizing Tool-Intent Stabilization in Streaming\\ Retrieval-Augmented Generation}
-\author{Elroy Galbraith, PhD\\ SMG Labs}
-\date{\today}
+\title{When Does Streaming Tool Use Help?\\
+Characterizing Tool-Intent Stabilization in Streaming Retrieval-Augmented Generation}
+\author{Anonymous}
 
 % ===================================================================== %
 % RESULTS MACROS — populated from results/*.summary.json (see fill note) %
@@ -320,21 +318,6 @@ retrieval.
 \input{results.tex}
 % ===================================================================== %
 
-\section{Threats to Validity}
-\paragraph{Input timing.} A uniform word stream is a proxy for speech; real ASR
-pacing is variable and partial hypotheses get revised. We bound this here by using
-clean text and treat speech timing as planned follow-up.
-\paragraph{Stabilization measure.} Top-1 equality is a coarse proxy for ``intent
-settled.'' We mitigate by also reporting sufficiency against the gold document and
-by varying top-$k$.
-\paragraph{Grounding.} $d^\star$ is derived by string matching, so the groundable
-population excludes non-verbatim answers; reported $\phi_{\mathrm{suf}}$ statistics
-are conditional on groundability, and we report $t_{\mathrm{sc}}$ as a
-grounding-free check.
-\paragraph{Retriever and benchmark.} BM25 is lexical and phrasing-sensitive, and
-results are from a single benchmark; a dense-retriever condition and a second QA
-set are natural extensions.
-
 \section{Conclusion}
 Tool-intent stabilization is a query-intrinsic, model-agnostic quantity that
 bounds when streaming tool use can help and by how much. On CRAG, sufficiency
@@ -362,8 +345,22 @@ the natural next steps. Even so, the present results give system builders a
 principled, training-free basis for trigger design and a build/skip decision for a
 learned trigger.
 
-\bibliographystyle{plainnat}
+\section*{Limitations}
+\paragraph{Input timing.} A uniform word stream is a proxy for speech; real ASR
+pacing is variable and partial hypotheses get revised. We bound this here by using
+clean text and treat speech timing as planned follow-up.
+\paragraph{Stabilization measure.} Top-1 equality is a coarse proxy for ``intent
+settled.'' We mitigate by also reporting sufficiency against the gold document and
+by varying top-$k$.
+\paragraph{Grounding.} $d^\star$ is derived by string matching, so the groundable
+population excludes non-verbatim answers; reported $\phi_{\mathrm{suf}}$ statistics
+are conditional on groundability, and we report $t_{\mathrm{sc}}$ as a
+grounding-free check.
+\paragraph{Retriever and benchmark.} BM25 is lexical and phrasing-sensitive, and
+results are from a single benchmark; a dense-retriever condition and a second QA
+set are natural extensions.
+
+\bibliographystyle{acl_natbib}
 \bibliography{refs}
-\nocite{*}
 
 \end{document}
