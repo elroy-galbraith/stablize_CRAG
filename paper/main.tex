@@ -219,28 +219,23 @@ $H \geq \theta L$ for a coverage threshold $\theta$ (e.g.\ $\theta=0.8$ hides at
 least 80\% of tool latency). The streamable fraction of a workload is the central
 deployment-relevant statistic.
 
-\paragraph{Hypotheses.} The study is organized around four \emph{pre-specified}
-hypotheses, each mapped to a research question (RQ) below.
-\begin{description}
-\item[H1 (RQ1).] The distribution of $\phi$ is bimodal: a large early-stabilizing
-  mass (decisive entity stated up front) plus a tail that stabilizes only near the
-  end (decisive term last).
-\item[H2 (RQ2).] For large tool latency $L$, the binding constraint on $H$ is the
-  residual input time $(n-t^\star)/\delta$ rather than $L$; consequently a
-  \emph{slower} input cadence $\delta$ paradoxically \emph{raises} the hideable
-  fraction.
-\item[H3 (RQ4).] CRAG question type predicts $\phi$: simple lookups stabilize
-  early, while comparison, aggregation, multi-hop, and post-processing queries
-  stabilize late.
-\end{description}
-We test H1--H3 directly (\S5), and we report a top-$k$ robustness sweep
-(\S\ref{sec:method}, Table~\ref{tab:topk}) as a within-retriever sensitivity
-check. Dense-retriever and cross-linguistic conditions are left to future work.
-We report outcomes
-including disconfirmations: H2 is confirmed, but H1 is \emph{falsified} (the
-distribution is right-skewed, not bimodal; \S5.1) and H3 is contradicted in
-direction (entity position, not reasoning complexity, governs the ordering;
-\S5.2).
+\paragraph{Research questions.} We address four pre-registered questions.
+\textbf{RQ1} asks how $\phi$ is distributed across queries; we expect a bimodal
+shape with an early-stabilizing mass and a late-stabilizing tail.
+\textbf{RQ2} asks what fraction of queries admit latency hiding as $L$, $\delta$,
+and $\theta$ vary; we expect that for large $L$ the binding constraint is the
+residual input time $(n-t^\star)/\delta$, so a \emph{slower} cadence
+paradoxically \emph{raises} the streamable fraction.
+\textbf{RQ3} asks whether the $H$ bound matches a working pipeline.
+\textbf{RQ4} asks which query features predict early vs.\ late stabilization; we
+expect question type to be the dominant signal, with simple lookups stabilizing
+earlier than multi-hop or aggregation queries.
+We address RQ1--RQ4 in \S5 and include a top-$k$ robustness sweep
+(Table~\ref{tab:topk}) as a sensitivity check. Dense-retriever and
+cross-linguistic conditions are left to future work. We report
+disconfirmations alongside confirmations: RQ2 is confirmed, but the RQ1
+distribution is right-skewed rather than bimodal (\S5.1), and the RQ4 ordering
+is governed by entity position rather than reasoning complexity (\S5.2).
 
 \section{Method}\label{sec:method}
 \paragraph{Data.} We use CRAG, the Comprehensive RAG
