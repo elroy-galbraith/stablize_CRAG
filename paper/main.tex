@@ -185,8 +185,8 @@ document retrieved from the prefix, $d_n$ for the full-query top document, and
 $d^\star$ for the gold answer-bearing document.
 
 \paragraph{Self-consistency stabilization $t_{\mathrm{sc}}$.} the smallest $t$
-such that for all $s \geq t$, $d_s = d_n$: the prefix already retrieves what the
-full query will.
+such that for all $s \in \{t, \ldots, n\}$, $d_s = d_n$: every prefix from $t$
+onward retrieves the same top document as the full query.
 
 \paragraph{Sufficiency stabilization $t_{\mathrm{suf}}$.} the smallest $t$ such
 that $d^\star \in \mathrm{top\text{-}}k(R(q_{1:t}))$: the prefix already surfaces
