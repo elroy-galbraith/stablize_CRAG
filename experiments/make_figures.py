@@ -14,8 +14,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-RESULTS = "results"
-FIGS = "paper/figures"
+_ROOT = os.path.join(os.path.dirname(__file__), "..")
+RESULTS = os.path.join(_ROOT, "results")
+FIGS = os.path.join(_ROOT, "paper", "figures")
 NAVY = "#1F3B57"
 RUST = "#B4543A"
 os.makedirs(FIGS, exist_ok=True)

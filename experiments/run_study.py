@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import statistics as st
 from collections import defaultdict
 
@@ -195,7 +196,7 @@ def main():
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--top-k", type=int, default=3)
     ap.add_argument("--chunk-words", type=int, default=120)
-    ap.add_argument("--out", default="stabilization.csv")
+    ap.add_argument("--out", default="results/stabilization.csv")
     ap.add_argument("--L", type=float, default=600.0, help="tool latency ms (RQ2/RQ3)")
     ap.add_argument("--delta", type=float, default=3.0, help="input cadence words/sec")
     ap.add_argument("--theta", type=float, default=0.8, help="streamable coverage threshold")
@@ -205,12 +206,12 @@ def main():
                          "'sc'=fallback majority (t_sc, no retrieved gold)")
     ap.add_argument("--grounding", choices=["exact", "fuzzy"], default="exact",
                     help="d* grounding: exact substring or fuzzy bag-of-content-token")
-    ap.add_argument("--summary-json", default="stabilization.summary.json",
+    ap.add_argument("--summary-json", default="results/stabilization.summary.json",
                     help="aggregate RQ1/RQ2/RQ4(+grid)/RQ3 results JSON for the report")
-    ap.add_argument("--latency-csv", default="latency_validation.csv",
+    ap.add_argument("--latency-csv", default="results/latency_validation.csv",
                     help="per-question RQ3 measured-vs-predicted rows")
     ap.add_argument("--plot", action="store_true")
-    ap.add_argument("--plot-out", default="phi_distribution.png")
+    ap.add_argument("--plot-out", default="results/phi_distribution.png")
     args = ap.parse_args()
 
     rows = []

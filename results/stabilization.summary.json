@@ -1,0 +1,355 @@
+{
+  "n_questions": 3,
+  "groundable": {
+    "count": 2,
+    "frac": 0.6666666666666666
+  },
+  "retrieved_gold": {
+    "count": 2,
+    "frac": 0.6666666666666666
+  },
+  "rq1": {
+    "phi_sc": {
+      "n": 3,
+      "mean": 0.3277666666666667,
+      "median": 0.1
+    },
+    "phi_suf": {
+      "n": 2,
+      "mean": 0.08335000000000001,
+      "median": 0.08335000000000001
+    },
+    "volatility_mean": 0.6666666666666666,
+    "volatility_share_gt0": 0.3333333333333333
+  },
+  "rq4_phi_suf_by_question_type": {
+    "multi-hop": {
+      "n": 1,
+      "mean_phi_suf": 0.0667
+    },
+    "simple": {
+      "n": 1,
+      "mean_phi_suf": 0.1
+    }
+  },
+  "rq2_configured": {
+    "L_ms": 600.0,
+    "delta_wps": 3.0,
+    "theta": 0.8,
+    "streamable": 3,
+    "denom": 3,
+    "frac": 1.0
+  },
+  "rq2_grid": [
+    {
+      "L_ms": 100.0,
+      "delta_wps": 2.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 100.0,
+      "delta_wps": 2.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 100.0,
+      "delta_wps": 2.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 100.0,
+      "delta_wps": 3.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 100.0,
+      "delta_wps": 3.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 100.0,
+      "delta_wps": 3.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 100.0,
+      "delta_wps": 4.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 100.0,
+      "delta_wps": 4.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 100.0,
+      "delta_wps": 4.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 300.0,
+      "delta_wps": 2.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 300.0,
+      "delta_wps": 2.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 300.0,
+      "delta_wps": 2.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 300.0,
+      "delta_wps": 3.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 300.0,
+      "delta_wps": 3.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 300.0,
+      "delta_wps": 3.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 300.0,
+      "delta_wps": 4.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 300.0,
+      "delta_wps": 4.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 300.0,
+      "delta_wps": 4.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 600.0,
+      "delta_wps": 2.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 600.0,
+      "delta_wps": 2.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 600.0,
+      "delta_wps": 2.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 600.0,
+      "delta_wps": 3.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 600.0,
+      "delta_wps": 3.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 600.0,
+      "delta_wps": 3.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 600.0,
+      "delta_wps": 4.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 600.0,
+      "delta_wps": 4.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 600.0,
+      "delta_wps": 4.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 1000.0,
+      "delta_wps": 2.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 1000.0,
+      "delta_wps": 2.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 1000.0,
+      "delta_wps": 2.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 1000.0,
+      "delta_wps": 3.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 1000.0,
+      "delta_wps": 3.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 1000.0,
+      "delta_wps": 3.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 1000.0,
+      "delta_wps": 4.0,
+      "theta": 0.5,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 1000.0,
+      "delta_wps": 4.0,
+      "theta": 0.8,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    },
+    {
+      "L_ms": 1000.0,
+      "delta_wps": 4.0,
+      "theta": 1.0,
+      "streamable": 3,
+      "denom": 3,
+      "frac": 1.0
+    }
+  ],
+  "params": {
+    "data": "data/crag_fixture.jsonl.bz2",
+    "split": 0,
+    "limit": null,
+    "top_k": 3,
+    "chunk_words": 120,
+    "L_ms": 600.0,
+    "delta_wps": 3.0,
+    "theta": 0.8,
+    "per_question_csv": "results/stabilization.csv"
+  },
+  "rq3": {
+    "n": 2,
+    "pop": "suf",
+    "L_ms": 600.0,
+    "delta_wps": 3.0,
+    "measured_saved_ms_mean": 1096.885,
+    "H_predicted_ms_mean": 600.0,
+    "negative_saving_count": 0,
+    "negative_saving_rate": 0.0,
+    "csv": "results/latency_validation.csv"
+  }
+}

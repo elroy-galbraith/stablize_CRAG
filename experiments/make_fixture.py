@@ -4,6 +4,7 @@ so the pipeline can be tested without the ~GB download. NOT real CRAG data.
 """
 import bz2
 import json
+import os
 
 
 def page(name, html):
@@ -99,7 +100,9 @@ EXAMPLES = [
 ]
 
 
-def main(path="crag_fixture.jsonl.bz2"):
+def main(path=None):
+    if path is None:
+        path = os.path.join(os.path.dirname(__file__), "..", "data", "crag_fixture.jsonl.bz2")
     with bz2.open(path, "wt", encoding="utf-8") as f:
         for ex in EXAMPLES:
             f.write(json.dumps(ex) + "\n")
