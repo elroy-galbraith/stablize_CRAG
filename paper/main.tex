@@ -35,11 +35,16 @@
 \newcommand{\volSharePct}{20.9\%}
 % RQ2 (central cell L=600, delta=3, theta=0.8)
 \newcommand{\streamPct}{73.9\%}
-% RQ3
+% RQ3 (paired replay of the SAME 60 questions at two tool latencies)
 \newcommand{\rqThreeN}{60}
-\newcommand{\measSaved}{1122}
-\newcommand{\hPred}{590}
-\newcommand{\rqThreeRho}{-0.06}      % Spearman(residual input time, measured saving) %
+\newcommand{\measSaved}{1122}        % L=600 measured mean %
+\newcommand{\hPred}{590}             % L=600 H mean %
+\newcommand{\rhoLsix}{+0.14}         % Spearman(H, measured) at L=600 %
+\newcommand{\measSavedLk}{1457}      % L=1000 measured mean %
+\newcommand{\hPredLk}{950}           % L=1000 H mean %
+\newcommand{\rhoLk}{+0.12}           % Spearman(H, measured) at L=1000 %
+\newcommand{\nSatLsix}{59}           % L=600: queries pinned at H=600 (of 60) %
+\newcommand{\nTailLk}{7}             % L=1000: queries below the H cap (of 60) %
 % RQ2 population split (central cell L=600, delta=3, theta=0.8)
 \newcommand{\streamSufPct}{95.2\%}   % streamable among retrieved-gold, using t_suf (n=292) %
 \newcommand{\streamScPct}{68.1\%}    % streamable among fallback, using t_sc (n=1079) %
@@ -51,6 +56,15 @@
 % Arora et al. per-stage latencies used to calibrate RQ3 (ms)
 \newcommand{\qgenMs}{590}            % query generation %
 \newcommand{\fuseMs}{2520}           % fuse/reflect %
+% Robustness: relaxed (fuzzy bag-of-content-token) grounding arm, k=3
+\newcommand{\groundFuzzyPct}{43.3\%} % groundable under fuzzy (vs 35.4 exact) %
+\newcommand{\retrFuzzyPct}{24.4\%}   % retrieved-gold under fuzzy (vs 21.3 exact) %
+\newcommand{\phiSufFuzzy}{0.281}     % phi_suf mean under fuzzy (vs 0.264 exact) %
+\newcommand{\nSetFuzzy}{20}          % 'set' support under fuzzy (vs 2 exact) %
+% Robustness: t_sc-population mis-fire replay (L=600, delta=3) vs the suf replay
+\newcommand{\negRateSuf}{1.7\%}      % net-negative-saving rate, retrieved-gold pop %
+\newcommand{\negRateSc}{1.7\%}       % net-negative-saving rate, t_sc fallback pop %
+\newcommand{\phiScReplay}{0.68}      % mean phi of the t_sc replay sample %
 % ===================================================================== %
 
 \begin{document}
@@ -74,12 +88,13 @@ predict early versus late stabilization. The study requires no model training an
 runs on commodity CPU hardware. We find that sufficiency stabilizes early on the
 groundable, BM25-retrievable subset of the benchmark (mean
 $\phi_{\mathrm{suf}}=\phiSufMean{}$ over the \nRetrPct{} of questions where gold
-evidence is both verbatim-present and retrievable), that \streamPct{} of queries
-admit substantial latency hiding at a realistic operating point---\streamSufPct{}
-of the retrieved-gold subset and \streamScPct{} of the remainder---and that
-question type is an ordered predictor of stabilization (Kruskal--Wallis
-$p=\kwAllP{}$), directly informing when a learned speculative trigger is worth its
-cost.
+evidence is both verbatim-present and retrievable); that on this subset
+\streamSufPct{} of queries admit substantial latency hiding at a realistic
+operating point (the headline \streamPct{} that also counts the remainder is
+dominated by a weaker, top-1-settling notion); and that question type produces a
+significant but coarse effect on stabilization (Kruskal--Wallis $p=\kwAllP{}$,
+$\varepsilon^2{=}0.04$)---a robust early/late split rather than a precise per-type
+order---directly informing when a learned speculative trigger is worth its cost.
 \end{abstract}
 
 \section{Introduction}
@@ -99,7 +114,11 @@ decisive term arrives last (``who makes the console called the
 \emph{PlayStation}''), no early speculative query can retrieve the right evidence
 and the latency win collapses to zero regardless of system quality. If the
 decisive term arrives early, almost the entire tool latency can be hidden behind
-the remaining input.
+the remaining input. We initially expected these two regimes to show up as a
+\emph{bimodal} distribution of stabilization; empirically (\S5.1) the picture is
+better described as a large early-stabilizing mass with a thin late tail---the
+early case is common and the late case is the rarer failure mode---and we report
+the distribution as found rather than as hypothesized.
 
 We study this directly. By characterizing tool-intent stabilization as a
 measurable, query-intrinsic quantity, we obtain (i) a model-agnostic bound on the
@@ -122,6 +141,20 @@ speculative decoding~\cite{leviathan2023speculative}, which hides latency by
 doing work that may be discarded; here the discarded work is a premature tool
 call. Our analysis is orthogonal to the system: we quantify the headroom that any
 such system can exploit, set by the query alone.
+
+\paragraph{Stabilization over a growing prefix.} The core object we study---when a
+prediction over a growing input prefix becomes safe to commit---is the central
+question of \emph{simultaneous} and \emph{incremental} NLP. Simultaneous machine
+translation must decide, token by token, whether enough source has arrived to emit
+output: wait-$k$ and prefix-to-prefix policies~\cite{ma2019stacl} and learned
+read/write agents~\cite{gu2017simultaneous} trade latency against the risk of
+committing before the disambiguating word arrives---precisely our $L$-versus-residual
+tension. Incremental dialogue processing~\cite{schlangen2011incremental} formalizes
+the same prefix-monotonicity and revision concerns (its notion of an output that
+later input may \emph{revise} is our volatility $V$). Our contribution is to port
+this lens to \emph{tool/retrieval} intent: rather than learning a commit policy, we
+\emph{measure} the query-intrinsic point at which the retrieval target stabilizes,
+which upper-bounds what any such policy could hide.
 
 \section{Problem Formalization}
 Let a query $Q$ be a word sequence $q_{1:n}$ of length $n$ words, and let $q_{1:t}$
@@ -167,8 +200,9 @@ $H \geq \theta L$ for a coverage threshold $\theta$ (e.g.\ $\theta=0.8$ hides at
 least 80\% of tool latency). The streamable fraction of a workload is the central
 deployment-relevant statistic.
 
-\paragraph{Hypotheses.} The study is organized around four pre-registered
-hypotheses, each mapped to a research question (RQ) below.
+\paragraph{Hypotheses.} The study is organized around four \emph{pre-specified}
+hypotheses (stated in the proposal that preceded the analysis; we make no claim of
+a formal public pre-registration), each mapped to a research question (RQ) below.
 \begin{description}
 \item[H1 (RQ1).] The distribution of $\phi$ is bimodal: a large early-stabilizing
   mass (decisive entity stated up front) plus a tail that stabilizes only near the
@@ -185,7 +219,11 @@ hypotheses, each mapped to a research question (RQ) below.
 \end{description}
 We test H1--H3 directly (\S5); the dense-retriever condition for H4 is left to
 future work, and we instead report a top-$k$ robustness sweep (\S\ref{sec:method},
-Table~\ref{tab:topk}) as a within-retriever sensitivity check.
+Table~\ref{tab:topk}) as a within-retriever sensitivity check. We report outcomes
+including disconfirmations: H2 is confirmed, but H1 is \emph{falsified} (the
+distribution is right-skewed, not bimodal; \S5.1) and H3 is contradicted in
+direction (entity position, not reasoning complexity, governs the ordering;
+\S5.2).
 
 \section{Method}\label{sec:method}
 \paragraph{Data.} We use CRAG, the Comprehensive RAG
@@ -213,11 +251,26 @@ substring match, are far less prone to this. We therefore read $\phi_{\mathrm{su
 as a lower bound on stabilization time on the groundable subset, and treat the
 early-stabilization finding as directionally robust rather than exact.
 
+To bound the population-selection bias this strictness induces, we also run a
+\emph{relaxed} grounding arm (\S\ref{sec:robust}): for multi-token answers it accepts
+a passage if all of the answer's content tokens (stopwords dropped) appear anywhere in
+it---bag-of-content-token containment, dropping only the contiguity requirement. This
+is deliberately higher-recall and lower-precision than the substring rule, so the two
+arms \emph{bracket} the true groundable population and the $\phi_{\mathrm{suf}}$ that
+goes with it.
+
 \paragraph{Passages and retrieval.} Page HTML is cleaned to text and chunked into
-overlapping 120-word windows. We index each question's passages with
-BM25~\cite{robertson2009bm25} and retrieve over every prefix $q_{1:t}$,
-$t=1\dots n$, recording $d_t$ and the top-$k$ set at each prefix. We sweep
-$k\in\{1,3,5\}$ for the sufficiency definition.
+120-word windows with a 20-word overlap (stride 100), capped at 400 chunks per
+question. We index each question's passages with a pure-Python lexical
+BM25~\cite{robertson2009bm25} ($k_1{=}1.5$, $b{=}0.75$) and retrieve over every
+prefix $q_{1:t}$, $t=1\dots n$, recording $d_t$ and the top-$k$ set at each prefix.
+We sweep $k\in\{1,3,5\}$ for the sufficiency definition. All retrieval is
+deterministic; the analysis uses the CRAG \texttt{dev\_v4} snapshot (the released
+web pages, so retrieval is fixed and not subject to live drift). The two stochastic
+or selection steps are seeded and reproducible: the $\rqThreeN{}$-question RQ3
+subset is simply the first \rqThreeN{} retrieved-gold questions in dataset order
+(no sampling), and the bootstrap confidence intervals (\S5.2) use $10{,}000$
+resamples at seed $0$.
 
 \paragraph{Latency model and harness (RQ3).} We stream each query as a uniform
 word sequence---a controlled proxy for input cadence $\delta$---and sweep
@@ -262,13 +315,22 @@ bounds when streaming tool use can help and by how much. On CRAG, sufficiency
 stabilizes early on the groundable, retrievable subset and is ordered by question
 type (Kruskal--Wallis $p=\kwAllP{}$); the $H$ bound is conservative, with realized
 savings on a working pipeline meeting or exceeding it; and the streamable fraction
-is high at realistic operating points. Two limitations temper these claims and set
-the agenda for follow-up: the sufficiency results are conditional on a favorable
-$\nRetrPct{}$ slice of the benchmark, and our system validation establishes
-conservativeness in aggregate but not per-query prediction, because the bound
-saturates at the operating point we replayed (\S5.4). A higher-$L$ replay, a
-dense-retriever condition (H4), and a regression of $\phi$ on query features are
-the natural next steps. Even so, the present results give system builders a
+is high at realistic operating points. Two limitations temper these claims, and we
+probed both rather than merely noting them. First, the sufficiency results are
+conditional on a favorable $\nRetrPct{}$ slice; a relaxed-grounding arm that expands
+the population by a sixth moves $\phi_{\mathrm{suf}}$ by under $0.02$
+(\S\ref{sec:robust}), so the early-stabilization finding is bounded as signal, not
+artifact---though a fuller recovery of the excluded population (dense or learned
+grounding) remains open. Second, our system validation establishes conservativeness in
+aggregate but \emph{not} per-query prediction: replaying the same questions at
+$L{=}1000$\,ms, where the bound is unsaturated, realized savings still do not track
+$H$ (Spearman $\rho{=}\rhoLk{}$), because a constant query-generation overlap dominates
+the saving and trigger mis-fires produce negative outcomes the floored bound cannot
+represent (\S5.4). The downside is real but, measured on both the favorable and the
+late-stabilizing fallback population, rare ($\approx\negRateSc{}$ net-negative at
+$L{=}600$). Closing the prediction gap---a model that folds in the query-generation
+overlap and a mis-fire penalty---together with a dense-retriever condition (H4) and a
+regression of $\phi$ on query features are the natural next steps. Even so, the present results give system builders a
 principled, training-free basis for trigger design and a build/skip decision for a
 learned trigger.
 

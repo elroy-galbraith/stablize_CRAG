@@ -126,10 +126,15 @@ def summarize(rows, L_ms, delta_wps, theta):
     }
 
 
-async def validate_latency(examples, L_ms, delta_wps, n_max, out_csv):
+async def validate_latency(examples, L_ms, delta_wps, n_max, out_csv, pop="suf"):
     """RQ3: compare measured perceived latency (baseline vs streaming) to the
     H-bound, on a small subset, using the existing async harness. Writes a
-    per-question CSV and returns a structured summary dict (None if no rows)."""
+    per-question CSV and returns a structured summary dict (None if no rows).
+
+    `pop` selects the population: "suf" replays retrieved-gold questions (t* =
+    t_suf, the favorable early-stabilizing slice); "sc" replays the fallback
+    majority that has no retrieved gold (t* = t_sc), which is the population most
+    exposed to trigger mis-fires — used to estimate the downside rate H ignores."""
     from streaming_rag import Config, DirectRetrievalBroker, run_baseline, run_streaming
 
     cfg = Config(words_per_sec=delta_wps, trigger_interval_words=3, max_threads=4)
@@ -137,7 +142,9 @@ async def validate_latency(examples, L_ms, delta_wps, n_max, out_csv):
     for ex in examples:
         if len(rows) >= n_max:
             break
-        if not ex.retrieved_gold_stab:  # attached below
+        if pop == "suf" and not ex.retrieved_gold_stab:   # attached below
+            continue
+        if pop == "sc" and ex.retrieved_gold_stab:        # want the fallback majority
             continue
         docs = ex.passages
         b = await run_baseline(ex.query, DirectRetrievalBroker(docs, exec_latency_ms=L_ms), cfg)
@@ -164,14 +171,19 @@ async def validate_latency(examples, L_ms, delta_wps, n_max, out_csv):
 
     saved = [r["measured_saved_ms"] for r in rows]
     predicted = [r["H_predicted_ms"] for r in rows]
-    print(f"\n[RQ3] latency validation on {len(rows)} questions -> {out_csv}")
+    n_neg = sum(1 for v in saved if v < 0)
+    print(f"\n[RQ3] latency validation on {len(rows)} questions (pop={pop}) -> {out_csv}")
     print(f"   measured perceived-latency saved: mean {st.mean(saved):.1f}ms")
     print(f"   H-bound predicted saving:         mean {st.mean(predicted):.1f}ms")
+    print(f"   net-negative-saving (mis-fire) rate: {n_neg}/{len(rows)} "
+          f"({100*n_neg/len(rows):.1f}%)")
     return {
-        "n": len(rows),
+        "n": len(rows), "pop": pop,
         "L_ms": L_ms, "delta_wps": delta_wps,
         "measured_saved_ms_mean": st.mean(saved),
         "H_predicted_ms_mean": st.mean(predicted),
+        "negative_saving_count": n_neg,
+        "negative_saving_rate": n_neg / len(rows),
         "csv": out_csv,
     }
 
@@ -188,6 +200,11 @@ def main():
     ap.add_argument("--delta", type=float, default=3.0, help="input cadence words/sec")
     ap.add_argument("--theta", type=float, default=0.8, help="streamable coverage threshold")
     ap.add_argument("--latency-n", type=int, default=0, help="RQ3 subset size (0=skip)")
+    ap.add_argument("--latency-pop", choices=["suf", "sc"], default="suf",
+                    help="RQ3 population: 'suf'=retrieved-gold (t_suf), "
+                         "'sc'=fallback majority (t_sc, no retrieved gold)")
+    ap.add_argument("--grounding", choices=["exact", "fuzzy"], default="exact",
+                    help="d* grounding: exact substring or fuzzy bag-of-content-token")
     ap.add_argument("--summary-json", default="stabilization.summary.json",
                     help="aggregate RQ1/RQ2/RQ4(+grid)/RQ3 results JSON for the report")
     ap.add_argument("--latency-csv", default="latency_validation.csv",
@@ -198,7 +215,8 @@ def main():
 
     rows = []
     keep_for_latency = []
-    for ex in load_crag(args.data, split=args.split, limit=args.limit, chunk_words=args.chunk_words):
+    for ex in load_crag(args.data, split=args.split, limit=args.limit,
+                        chunk_words=args.chunk_words, grounding=args.grounding):
         stab = stabilization(ex.query, ex.passages, ex.gold, top_k=args.top_k)
         if stab is None:
             continue
@@ -236,7 +254,8 @@ def main():
     if args.latency_n:
         import asyncio
         summary["rq3"] = asyncio.run(
-            validate_latency(keep_for_latency, args.L, args.delta, args.latency_n, args.latency_csv)
+            validate_latency(keep_for_latency, args.L, args.delta, args.latency_n,
+                             args.latency_csv, pop=args.latency_pop)
         )
 
     with open(args.summary_json, "w") as f:

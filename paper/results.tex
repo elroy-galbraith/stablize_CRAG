@@ -17,7 +17,11 @@ $\phi_{\mathrm{suf}}$ statistics should be read as characterizing this favorable
 slice, not ``most answerable questions''; if anything, the selection biases the
 reported stabilization \emph{earlier} than it would be on the full workload. We
 therefore lean on $\phi_{\mathrm{sc}}$, defined on all \nSplitZero{} questions, as
-the grounding-free companion to every sufficiency claim.
+the grounding-free companion to every sufficiency claim, and we bound the magnitude
+of the selection effect with a relaxed-grounding arm below
+(\S\ref{sec:robust}): recovering a sixth more of the population moves
+$\phi_{\mathrm{suf}}$ by under $0.02$, so the early-stabilization finding survives the
+expansion rather than dissolving into it.
 
 \subsection{RQ1: How is stabilization distributed?}
 The two stabilization notions behave very differently (Fig.~\ref{fig:phi}).
@@ -52,13 +56,21 @@ threefold range (Table~\ref{tab:bytype}, Fig.~\ref{fig:bytype}). A Kruskal--Wall
 test across all eight types rejects equality of the $\phi_{\mathrm{suf}}$
 distributions ($H{=}\kwAllH{}$, $\mathrm{df}{=}7$, $p{=}\kwAllP{}$); restricting to
 the five classes with $n\ge10$---which carry the effect---the test is stronger
-($H{=}\kwBigH{}$, $\mathrm{df}{=}4$, $p{=}\kwBigP{}$). The bootstrap $95\%$
-confidence intervals in Table~\ref{tab:bytype}, however, overlap substantially for
+($H{=}\kwBigH{}$, $\mathrm{df}{=}4$, $p{=}\kwBigP{}$). The effect, though
+significant, is \emph{small}: the rank-based effect size is
+$\varepsilon^2{=}0.04$ (both for all eight types and for the five large classes),
+i.e.\ question type explains on the order of $4\%$ of the rank variance in
+$\phi_{\mathrm{suf}}$. Consistent with a small effect, the bootstrap $95\%$
+confidence intervals in Table~\ref{tab:bytype} overlap substantially for
 adjacent types: the ordering is reliable only at the extremes (\emph{aggregation}
 and \emph{comparison} earliest, \emph{set} latest), not as a strict cell-by-cell
 ranking, and the small-support types (\texttt{set} $n{=}2$, \texttt{post-processing}
-$n{=}5$) have intervals too wide to place. We therefore claim a significant
-type-level effect with a robust early/late split, not a precise per-type order.
+$n{=}5$) have intervals too wide to place. A Dunn's post-hoc with Holm correction
+makes this precise: \emph{no} pairwise contrast survives at $\alpha{=}0.05$ (the
+closest, \texttt{simple} vs.\ \texttt{aggregation}, reaches $p_{\mathrm{Holm}}{=}0.05$).
+The omnibus effect is therefore carried by the overall rank distribution, not by any
+single separable pair. We accordingly claim a significant but coarse
+type-level effect---a robust early/late \emph{tendency}, not a precise per-type order.
 The qualitative ordering refines
 hypothesis H3 rather than confirming it. H3 expected simple lookups to stabilize
 early and aggregation/comparison/multi-hop to stabilize late. We instead find
@@ -123,7 +135,29 @@ is lower because it is dominated by the $t_{\mathrm{sc}}$ majority, for which
 ``streamable'' means only that the lexical top-1 has settled, not that gold is in
 the top-$k$. Readers who care about evidence sufficiency should weight the
 \streamSufPct{} figure; those who treat top-1 stability as the deployment signal get
-the blend. Two further patterns stand out. First,
+the blend.
+
+The blend also counts only upside. ``Streamable'' asks whether enough tool latency
+\emph{can} be hidden; it is silent on whether the speculative query was
+\emph{right}, and $H$'s $\max(0,\cdot)$ floor cannot represent the negative saving a
+mis-fire incurs (\S5.4). One might expect this blind spot to bite hardest in the
+$t_{\mathrm{sc}}$-fallback majority, which stabilizes \emph{late}
+(mean $\phi{=}\phiScReplay{}$ vs.\ $\approx0.29$ on the retrieved-gold replay
+sample), giving a fixed-interval trigger more room to fire before intent settles. We
+tested this by replaying \rqThreeN{} fallback questions (the harness previously
+replayed only retrieved-gold) through the same pipeline at $L{=}600$\,ms. The
+expectation does \emph{not} hold: the net-negative-saving rate is \negRateSc{}
+($1/\rqThreeN{}$), identical to the \negRateSuf{} on the favorable retrieved-gold
+population, and mean savings are likewise comparable. The reason is the same constant
+that dominates RQ3 (\S5.4): the query-generation overlap is hidden regardless of
+whether the speculative \emph{retrieval} was right, so late stabilization lowers $H$
+without proportionally raising the mis-fire rate at this operating point. Mis-fires
+are thus real but rare ($\approx\negRateSc{}$) across both populations here; the
+streamable fraction should still be read as an upper envelope on benefit paired with
+this small measured downside, and the rate may grow at larger $L$ or with a more
+aggressive trigger---a sweep we leave to future work.
+
+Two further patterns stand out. First,
 for small tool latency ($L\le300$\,ms) the constraint is essentially never binding:
 $82.6\%$ of queries are streamable regardless of cadence---the residual input time
 trivially covers a short tool call. Second, and confirming \textbf{H2}, when tool
@@ -160,53 +194,87 @@ input time to bind; there, slower cadence dominates (H2).}
 \end{figure}
 
 \subsection{RQ3: Does the bound match a working pipeline?}
-We replayed \rqThreeN{} retrieved-gold questions through the asynchronous Streaming
-RAG harness at $L{=}600$\,ms, $\delta{=}3$\,w/s. The measured perceived-latency
-saving (baseline minus streaming) averages \measSaved{}\,ms, while the $H$ bound
-predicts \hPred{}\,ms (Fig.~\ref{fig:rq3}). On average, measured savings
-\emph{exceed} the bound by roughly $1.9\times$. This is expected and informative:
-$H$ models only the tool latency hidden behind input, whereas the calibrated
-pipeline additionally overlaps the LLM's query-generation step
-($\approx\qgenMs{}$\,ms~\cite{arora2025streamrag}) with the user's input. $H$ is
-therefore a \emph{conservative} predictor of realized savings---it captures the
-input-hiding component and omits other overlappable costs---so a query that $H$
-deems streamable will, in practice, save at least as much as predicted.
+We replayed the same \rqThreeN{} retrieved-gold questions through the asynchronous
+Streaming RAG harness at $\delta{=}3$\,w/s and \emph{two} tool latencies,
+$L\in\{600,1000\}$\,ms (Fig.~\ref{fig:rq3}). In the aggregate the bound is
+\emph{conservative} at both: measured perceived-latency savings (baseline minus
+streaming) average \measSaved{}\,ms vs.\ the \hPred{}\,ms $H$ bound at $L{=}600$, and
+\measSavedLk{}\,ms vs.\ \hPredLk{}\,ms at $L{=}1000$. The overshoot is expected and
+informative: $H$ models only the tool latency hidden behind input, whereas the
+calibrated pipeline additionally overlaps the LLM's query-generation step
+($\approx\qgenMs{}$\,ms~\cite{arora2025streamrag}) with the user's input. Indeed the
+overshoot is almost exactly that step: at $L{=}600$ the bound mean
+($\hPred{}$\,ms) plus the query-generation constant ($\approx\qgenMs{}$\,ms) recovers
+the measured mean ($\approx\measSaved{}$\,ms) to within noise---a useful sanity
+check, but also a caution that this paragraph mostly re-derives $H$ plus a constant
+rather than independently testing $H$ (we address that next). So a query
+that $H$ deems streamable will, in practice, save \emph{at least} as much as
+predicted---the property that makes $H$ safe to plan with.
 
-We are deliberately cautious about what this experiment does \emph{not} show. At
-$L{=}600$\,ms the bound saturates: $59$ of the $\rqThreeN{}$ replayed queries have
-the same $H{=}600$\,ms (the input residual exceeds $L$), so there is essentially no
-horizontal spread against which to test whether $H$ \emph{ranks} queries by realized
-saving. Consistent with this, the rank correlation between the input-hideable
-residual $(n-t^\star)/\delta$ and the measured saving is negligible
-(Spearman $\rho{=}\rqThreeRho{}$). RQ3 thus validates the bound in the aggregate
-sense---realized savings meet or exceed it---but it does \emph{not} establish
-per-query prediction; doing so requires a replay at larger $L$ (e.g.\ $1000$\,ms),
-where $H$ varies across queries (Table~\ref{tab:rq2}). We flag this as the primary
-follow-up rather than claim predictive validity here.
+We are deliberately careful about the stronger claim the bound does \emph{not}
+support: per-query prediction. At $L{=}600$ the bound saturates---\nSatLsix{} of the
+\rqThreeN{} queries share $H{=}600$\,ms (the input residual exceeds $L$)---leaving no
+horizontal spread to test ranking, and the rank correlation between $H$ and the
+measured saving is negligible (Spearman $\rho{=}\rhoLsix{}$). We therefore re-ran the
+\emph{identical} questions at $L{=}1000$ specifically to break the saturation: $H$
+now takes three distinct values ($0$, $667$, $1000$\,ms) with \nTailLk{} of \rqThreeN{}
+queries below the cap. The spread appears, but the correlation does not:
+$\rho{=}\rhoLk{}$ over all \rqThreeN{}, and exactly $0.00$ within the unsaturated tail.
+Two structural reasons explain why raising $L$ cannot rescue per-query prediction.
+First, the dominant component of realized saving---the constant
+$\approx\qgenMs{}$\,ms query-generation overlap---is independent of $H$, so it adds a
+near-uniform offset that swamps the cross-query signal $H$ encodes. Second, the
+failure mode is \emph{negative}, and $H$'s $\max(0,\cdot)$ floor cannot represent it.
+RQ3 thus confirms $H$ as a conservative aggregate bound but \emph{not} a per-query
+ranker; a predictive model would need to add the query-generation overlap to the
+hideable budget and replace the floor with a mis-fire penalty.
 
-The few queries that save little are also instructive for volatility $V$. The single
-query with a negative saving (a 17-word comparison) is a \emph{late}-stabilization
-case ($t^\star{=}13$, almost no residual to hide behind) with $V{=}0$, not a
-high-volatility early-commit mis-fire. So in this sample $V$ did not flag the failure,
-and the downside is structural: $H$'s $\max(0,\cdot)$ floors the bound at zero and
-cannot express the negative saving a real mis-fire incurs. Whether $V$ predicts
-mis-fires at scale---the actionable role it is meant to play---remains untested on a
-sample this size, and we leave it open.
+The negative tail makes the second point concrete and reconnects volatility $V$ to
+outcomes. The single query that \emph{loses} time---a 17-word comparison
+($t^\star{=}13$)---costs $-543$\,ms at $L{=}600$ and $-940$\,ms at $L{=}1000$, yet its
+$H$ is \emph{maximal} ($1000$\,ms): with $n-t^\star{=}4$ words of nominal residual the
+bound rates it fully streamable while the fixed-interval trigger, firing before intent
+settles at word~13, mis-retrieves and pays a re-fire penalty. Notably this query has
+$V{=}0$, so volatility did \emph{not} flag it---the risk here is \emph{late}
+stabilization under an early-firing trigger, not post-stabilization churn. The
+actionable lesson is that an early-commit safeguard should gate on $\phi$ (how late
+intent settles relative to the trigger cadence) at least as much as on $V$; validating
+which signal best predicts mis-fires at scale is the natural next step.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.5\linewidth]{figures/rq3_scatter.png}
-\caption{RQ3: per-question measured saving vs.\ the $H$ bound ($\rqThreeN{}$
-questions). Most points lie above $y{=}x$ because the pipeline also hides
-query-generation latency, which $H$ does not model. At $L{=}600$\,ms the bound
-saturates---$59/\rqThreeN{}$ points share $H{=}600$\,ms---so the plot demonstrates
-that measured savings exceed the bound, not that $H$ ranks queries; one
-late-stabilizing query shows a negative saving that the floored bound cannot
-express.}
+\includegraphics[width=0.62\linewidth]{figures/rq3_scatter.png}
+\caption{RQ3: per-question measured saving vs.\ the $H$ bound for the same
+\rqThreeN{} questions, colored by tool latency $L$. Most points lie above $y{=}x$
+because the pipeline also hides query-generation latency, which $H$ does not model.
+At $L{=}600$\,ms (light) the bound saturates---$\nSatLsix{}/\rqThreeN{}$ points share
+$H{=}600$\,ms; at $L{=}1000$\,ms (dark) $H$ spreads across $\{0,667,1000\}$\,ms, yet
+measured savings still do not track it (Spearman $\rho{=}\rhoLk{}$). The lone point
+below zero is a late-stabilizing query whose mis-fire the floored bound cannot
+express---and whose $H$ is nonetheless maximal.}
 \label{fig:rq3}
 \end{figure}
 
-\subsection{Retriever robustness (top-$k$)}
+\subsection{Robustness}\label{sec:robust}
+\paragraph{Grounding (bounding the selection bias).} Our sharpest claims live on the
+\nRetrPct{} retrieved-gold slice, whose selection plausibly biases stabilization
+early (\S5.1). To bound that bias we re-derive $d^\star$ with a deliberately
+\emph{relaxed} matcher---bag-of-content-token containment rather than contiguous
+substring (\S\ref{sec:method})---which trades precision for recall and so expands the
+groundable population. Groundability rises from $35.4\%$ to \groundFuzzyPct{} and the
+retrieved-gold rate from \nRetrPct{} to \retrFuzzyPct{} (a sixth more questions). If
+the early-stabilization result were largely a selection artifact, admitting these
+harder-to-ground questions should pull $\phi_{\mathrm{suf}}$ up sharply. It does not:
+mean $\phi_{\mathrm{suf}}$ moves only from \phiSufMean{} to \phiSufFuzzy{}
+(median $0.143\to0.154$). The true value is thus bracketed in $[\phiSufMean{},
+\phiSufFuzzy{}]$---both early---and the by-type ordering is preserved, now on firmer
+footing: \texttt{set}, the latest type, grows from $n{=}2$ to $n{=}\nSetFuzzy{}$ and
+remains latest. We read the early-sufficiency finding as signal that survives a
+$1.5\times$ population expansion, not as an artifact of the strict matcher. (Fuzzy
+grounding is lower-precision, so it if anything biases $\phi_{\mathrm{suf}}$ \emph{down};
+that the estimate barely moves is the reassuring direction.)
+
+\paragraph{Retriever (top-$k$).}
 Varying the sufficiency top-$k$ shifts absolute values but preserves the
 qualitative picture (Table~\ref{tab:topk}). Larger $k$ surfaces the gold passage
 for more questions (retrieved-gold rate $15.6\%\to25.0\%$) and stabilizes slightly

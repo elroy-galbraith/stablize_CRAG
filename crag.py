@@ -103,6 +103,10 @@ _NON_ALNUM = re.compile(r"[^a-z0-9 ]+")
 _WS = re.compile(r"\s+")
 # Answers that signal an unanswerable / false-premise item — not groundable.
 _NON_ANSWERS = {"", "i don't know", "i dont know", "invalid question", "unknown"}
+# Function words dropped before fuzzy (bag-of-content-token) grounding, so that a
+# stopword present in every passage cannot inflate coverage.
+_STOP = {"the", "a", "an", "of", "in", "on", "at", "to", "and", "or", "for",
+         "is", "are", "was", "were", "be", "by", "with", "as", "that", "this"}
 
 
 def _norm(s) -> str:
@@ -119,6 +123,8 @@ def gold_passage_ids(
     passages: list[str],
     min_tokens_for_substring: int = 2,
     llm_judge: Optional[Callable[[str, str], bool]] = None,
+    mode: str = "exact",
+    fuzzy_min_coverage: float = 1.0,
 ) -> set[int]:
     """Return indices of passages judged to contain the gold answer.
 
@@ -126,6 +132,15 @@ def gold_passage_ids(
     (e.g. a number or a name): word-boundary match to avoid spurious hits.
     `llm_judge(answer, passage) -> bool` is an optional fallback used only when
     string matching finds nothing; it is never called by default.
+
+    ``mode="fuzzy"`` relaxes the multi-token rule from contiguous substring to
+    bag-of-content-token containment: a passage grounds the answer if at least
+    ``fuzzy_min_coverage`` of the answer's content tokens (stopwords dropped)
+    appear anywhere in it, regardless of order or interruption. This recovers
+    reordered/interrupted spans that the substring rule misses, at the cost of
+    precision, so the two modes bracket the true groundable population. Single-
+    token answers keep the word-boundary rule in both modes (relaxing them would
+    be almost pure noise).
     """
     candidates = [answer, *(alt_ans or [])]
     norm_answers = [na for na in (_norm(a) for a in candidates) if na and na not in _NON_ANSWERS]
@@ -133,13 +148,22 @@ def gold_passage_ids(
         return set()  # ungroundable (e.g. false-premise / "I don't know")
 
     norm_passages = [_norm(p) for p in passages]
+    passage_tok_sets = [set(p.split()) for p in norm_passages] if mode == "fuzzy" else None
     gold: set[int] = set()
     for na in norm_answers:
         toks = na.split()
         if len(toks) >= min_tokens_for_substring:
-            for i, npas in enumerate(norm_passages):
-                if na in npas:
-                    gold.add(i)
+            content = [t for t in toks if t not in _STOP] if mode == "fuzzy" else None
+            if mode == "fuzzy" and content and len(content) >= 2:
+                need = max(1, int(-(-len(content) * fuzzy_min_coverage // 1)))  # ceil
+                for i, ts in enumerate(passage_tok_sets):
+                    if sum(1 for t in content if t in ts) >= need:
+                        gold.add(i)
+            else:
+                # exact mode, or fuzzy with too few content tokens to relax safely
+                for i, npas in enumerate(norm_passages):
+                    if na in npas:
+                        gold.add(i)
         else:
             pat = re.compile(r"\b" + re.escape(na) + r"\b")
             for i, npas in enumerate(norm_passages):
@@ -182,8 +206,11 @@ def load_crag(
     overlap: int = 20,
     max_chunks_per_q: int = 400,
     llm_judge: Optional[Callable[[str, str], bool]] = None,
+    grounding: str = "exact",
 ) -> Iterator[CragExample]:
-    """Stream CragExamples. `split=0` keeps validation; None keeps all."""
+    """Stream CragExamples. `split=0` keeps validation; None keeps all.
+    `grounding` is "exact" (substring) or "fuzzy" (bag-of-content-token); see
+    `gold_passage_ids`."""
     n = 0
     for row in iter_jsonl(path):
         if split is not None and int(row.get("split", 0)) != split:
@@ -198,7 +225,8 @@ def load_crag(
             if len(passages) >= max_chunks_per_q:
                 passages = passages[:max_chunks_per_q]
                 break
-        gold = gold_passage_ids(row.get("answer", ""), row.get("alt_ans"), passages, llm_judge=llm_judge)
+        gold = gold_passage_ids(row.get("answer", ""), row.get("alt_ans"), passages,
+                                llm_judge=llm_judge, mode=grounding)
         yield CragExample(
             interaction_id=row.get("interaction_id", str(n)),
             query=row.get("query", ""),

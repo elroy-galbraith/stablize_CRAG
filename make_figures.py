@@ -102,22 +102,58 @@ def fig_rq2_surface(summary, theta=0.8):
 
 
 # --------------------------------------------------------------------------- #
-# Fig 4: RQ3 measured saving vs H-bound prediction (per question)             #
+# Fig 4: RQ3 measured saving vs H-bound prediction (per question), colored by  #
+# tool latency L. At L=600 the bound saturates (all H=600); at L=1000 it       #
+# develops spread, yet measured savings still do not track H (rho approx 0).   #
 # --------------------------------------------------------------------------- #
-def fig_rq3_scatter(rows):
-    if not rows:
+def _spearman(x, y):
+    n = len(x)
+    def rank(v):
+        order = sorted(range(n), key=lambda i: v[i])
+        r = [0.0] * n
+        i = 0
+        while i < n:
+            j = i
+            while j + 1 < n and v[order[j + 1]] == v[order[i]]:
+                j += 1
+            avg = (i + j) / 2.0 + 1
+            for k in range(i, j + 1):
+                r[order[k]] = avg
+            i = j + 1
+        return r
+    rx, ry = rank(x), rank(y)
+    mx, my = sum(rx) / n, sum(ry) / n
+    cov = sum((a - mx) * (b - my) for a, b in zip(rx, ry))
+    import math
+    sx = math.sqrt(sum((a - mx) ** 2 for a in rx))
+    sy = math.sqrt(sum((b - my) ** 2 for b in ry))
+    return cov / (sx * sy) if sx * sy else float("nan")
+
+
+def fig_rq3_scatter(rows_by_L):
+    series = [(L, rows) for L, rows in sorted(rows_by_L.items()) if rows]
+    if not series:
         print("skip rq3_scatter (no rows)")
         return
-    meas = [fnum(r["measured_saved_ms"]) for r in rows]
-    pred = [fnum(r["H_predicted_ms"]) for r in rows]
-    hi = max(max(meas), max(pred)) * 1.1
-    fig, ax = plt.subplots(figsize=(4.6, 4.4))
-    ax.scatter(pred, meas, color=NAVY, alpha=0.7, edgecolor="white")
-    ax.plot([0, hi], [0, hi], "--", color="grey", label="y = x (H bound)")
+    colors = {600.0: "#9bb4c4", 1000.0: RUST}
+    fig, ax = plt.subplots(figsize=(5.0, 4.6))
+    hi = 0.0
+    for L, rows in series:
+        meas = [fnum(r["measured_saved_ms"]) for r in rows]
+        pred = [fnum(r["H_predicted_ms"]) for r in rows]
+        hi = max(hi, max(meas), max(pred))
+        rho = _spearman(pred, meas)
+        ax.scatter(pred, meas, color=colors.get(L, NAVY), alpha=0.75,
+                   edgecolor="white",
+                   label=f"$L$={L:g} ms  ($\\rho$={rho:+.2f})")
+    lo = min(0.0, min(fnum(r["measured_saved_ms"]) for _, rs in series for r in rs))
+    ax.plot([0, hi * 1.1], [0, hi * 1.1], "--", color="grey", label="y = x (H bound)")
+    ax.axhline(0, color="black", lw=0.6, alpha=0.5)
     ax.set_xlabel("$H$-bound predicted saving (ms)")
     ax.set_ylabel("measured saving (ms)")
-    ax.set_title("RQ3: realized vs predicted latency saving")
-    ax.legend()
+    ax.set_ylim(lo * 1.15 if lo < 0 else 0, hi * 1.15)
+    ax.set_title("RQ3: realized vs predicted saving (colored by $L$)")
+    ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(f"{FIGS}/rq3_scatter.png", dpi=140)
     plt.close(fig)
@@ -131,9 +167,13 @@ def main():
     fig_phi_distribution(rows_k3)
     fig_phi_by_type(summary_k3)
     fig_rq2_surface(summary_k3)
-    lat_path = f"{RESULTS}/latency_k3.csv"
-    if os.path.exists(lat_path):
-        fig_rq3_scatter(load_csv(lat_path))
+    rows_by_L = {}
+    for L, path in [(600.0, f"{RESULTS}/latency_k3.csv"),
+                    (1000.0, f"{RESULTS}/latency_k3_L1000.csv")]:
+        if os.path.exists(path):
+            rows_by_L[L] = load_csv(path)
+    if rows_by_L:
+        fig_rq3_scatter(rows_by_L)
 
 
 if __name__ == "__main__":
