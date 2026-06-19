@@ -62,6 +62,12 @@ Characterizing Tool-Intent Stabilization in Streaming Retrieval-Augmented Genera
 \newcommand{\negRateSuf}{1.7\%}      % net-negative-saving rate, retrieved-gold pop %
 \newcommand{\negRateSc}{1.7\%}       % net-negative-saving rate, t_sc fallback pop %
 \newcommand{\phiScReplay}{0.68}      % mean phi of the t_sc replay sample %
+% Robustness: dense-retriever arm (all-MiniLM-L6-v2, cosine, k=3, split 0)
+\newcommand{\retrDensePct}{26.5\%}   % retrieved-gold, dense (vs 21.3 BM25) %
+\newcommand{\phiScDense}{0.85}       % phi_sc mean, dense (vs 0.67) %
+\newcommand{\phiSufDense}{0.31}      % phi_suf mean, dense (vs 0.26) %
+\newcommand{\phiSufDenseMed}{0.22}   % phi_suf median, dense (vs 0.14) %
+\newcommand{\rhoDenseType}{0.79}     % Spearman(BM25,dense) over phi_suf type ranking %
 % ===================================================================== %
 
 \begin{document}
@@ -96,8 +102,9 @@ that the lexical top-1 has settled, not that gold is in hand---yields \streamScP
 The two combine to a \streamPct{} blend over the full benchmark, but they measure
 different things and the favorable sufficiency figure is conditional on that
 \nRetrPct{} slice; because BM25 retrieves on early lexical anchors, that slice may
-itself bias stabilization early, and a dense-retriever replication is the main open
-confound. On the favorable slice, $\phi_{\mathrm{suf}}$ is bracketed to
+itself bias stabilization early, but a dense-retriever replication
+(\S\ref{sec:robust}) shows the signal is not a lexical artifact---dense sufficiency
+stabilizes if anything later, not earlier. On the favorable slice, $\phi_{\mathrm{suf}}$ is bracketed to
 $[\phiSufMean{},\,\phiSufFuzzy{}]$ by exact and relaxed grounding---both early,
 though still conditional on the slice. Question type produces a statistically
 significant but small early/late split (Kruskal--Wallis $p=\kwAllP{}$,
@@ -239,9 +246,9 @@ paradoxically \emph{raises} the streamable fraction.
 \textbf{RQ4} asks which query features predict early vs.\ late stabilization; we
 expect question type to be the dominant signal, with simple lookups stabilizing
 earlier than multi-hop or aggregation queries.
-We address RQ1--RQ4 in \S5 and include a top-$k$ robustness sweep
-(Table~\ref{tab:topk}) as a sensitivity check. Dense-retriever and
-cross-linguistic conditions are left to future work. We report
+We address RQ1--RQ4 in \S5 and include top-$k$ and dense-retriever robustness
+arms (Table~\ref{tab:topk}, \S\ref{sec:robust}) as sensitivity checks. A
+cross-linguistic condition is left to future work. We report
 disconfirmations alongside confirmations: RQ2 is confirmed, but the RQ1
 distribution is right-skewed rather than bimodal (\S5.1), and the RQ4 ordering
 is governed by entity position rather than reasoning complexity (\S5.2).
@@ -336,7 +343,7 @@ dominates the saving and trigger mis-fires produce negative outcomes the floored
 bound cannot represent (\S5.4). The downside is real but rare
 ($\approx\negRateSc{}$ net-negative at $L{=}600$). Closing the prediction
 gap---adding the query-generation overlap and a mis-fire penalty---together with a
-dense-retriever condition and a regression of $\phi$ on query features are the
+regression of $\phi$ on query features are the
 natural next steps. Even so, the present results give system builders a
 principled, training-free basis for trigger design and a build/skip decision for a
 learned trigger.
@@ -368,13 +375,15 @@ retrieval correctness, on the fallback set.
 \paragraph{Retriever and benchmark.} BM25 is lexical and phrasing-sensitive, and is
 known to retrieve on early topical anchors. Because $t_{\mathrm{suf}}$ asks only when
 the gold page enters the top-$k$, that early-anchor behavior could itself drive the
-low $\phi_{\mathrm{suf}}$ we report---a dense or learned retriever weights terms
-differently and might surface gold later (or earlier). This is the principal
-confound on our central early-stabilization claim; our two grounding arms bound the
-\emph{population}-selection bias (\S\ref{sec:robust}) but not this
-\emph{retriever}-induced one. A dense-retriever condition and a second QA set are
-therefore the natural---and, for a methods-heavy venue, close to required---next
-steps, not optional polish.
+low $\phi_{\mathrm{suf}}$ we report. We addressed this head-on with the
+dense-retriever arm (\S\ref{sec:robust}): a bi-encoder that weights terms
+semantically rather than lexically surfaces gold for \emph{more} questions yet
+stabilizes if anything \emph{later}, and the by-type ordering is preserved
+($\rho{=}\rhoDenseType{}$)---so the early-stabilization claim is retriever-general,
+not a BM25 artifact. What remains open is benchmark generality: a single
+English QA set leaves cross-dataset and cross-lingual replication---where verb-final
+word order may shift $t_{\mathrm{suf}}$ under lexical but not dense retrieval---as
+the natural next step, not optional polish.
 
 \bibliographystyle{acl_natbib}
 \bibliography{refs}

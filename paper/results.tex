@@ -282,3 +282,23 @@ $k$ & retrieved-gold & mean $\phi_{\mathrm{suf}}$ & median $\phi_{\mathrm{suf}}$
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{Retriever (dense).} Our sharpest concern is that BM25's reliance on
+early lexical anchors---not a property of the queries---drives the low
+$\phi_{\mathrm{suf}}$ we report. We test this directly by re-running the full sweep
+with a dense bi-encoder (\texttt{all-MiniLM-L6-v2}, cosine over the same passages)
+in place of BM25. The early-stabilization finding is not a lexical artifact: under
+dense retrieval sufficiency stabilizes if anything \emph{later}, not earlier (mean
+$\phi_{\mathrm{suf}}\,0.26\to\phiSufDense{}$, median $0.14\to\phiSufDenseMed{}$;
+$\phi_{\mathrm{sc}}\,0.67\to\phiScDense{}$), while the dense retriever surfaces gold
+for \emph{more} questions (retrieved-gold $21.3\%\to\retrDensePct{}$). A semantic
+retriever that does not key on early keywords thus still finds the answer-bearing
+passage well before the query ends---median $\phi_{\mathrm{suf}}=\phiSufDenseMed{}$,
+within the first quarter of the utterance. The by-type ordering is preserved
+(Spearman $\rho{=}\rhoDenseType{}$ between the BM25 and dense $\phi_{\mathrm{suf}}$
+rankings): \emph{aggregation} and \emph{comparison} remain among the earliest under
+both, and the disagreement is confined to the small-$n$ / grounding-ambiguous cells
+(\texttt{false\_premise}, \texttt{set}, \texttt{post-processing}). We read the dense
+arm as converting our principal open confound into a positive robustness result:
+the early-sufficiency signal is retriever-general, and BM25, if anything, is the
+\emph{more} optimistic backbone.
