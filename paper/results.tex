@@ -59,9 +59,9 @@ distributions ($H{=}\kwAllH{}$, $\mathrm{df}{=}7$, $p{=}\kwAllP{}$); restricting
 the five classes with $n\ge10$---which carry the effect---the test is stronger
 ($H{=}\kwBigH{}$, $\mathrm{df}{=}4$, $p{=}\kwBigP{}$). The effect, though
 significant, is \emph{small}: the rank-based effect size is
-$\varepsilon^2{=}0.04$ (both for all eight types and for the five large classes),
-i.e.\ question type explains on the order of $4\%$ of the rank variance in
-$\phi_{\mathrm{suf}}$. Consistent with a small effect, the interquartile ranges in Fig.~\ref{fig:bytype}
+$\varepsilon^2{=}\epsSq{}$ across all eight types and $\epsSqBig{}$ for the five
+large classes, i.e.\ question type explains on the order of $5$--$6\%$ of the rank
+variance in $\phi_{\mathrm{suf}}$. Consistent with a small effect, the interquartile ranges in Fig.~\ref{fig:bytype}
 overlap substantially for adjacent types: the ordering is reliable only at the extremes (\emph{aggregation} and
 \emph{comparison} earliest, \emph{set} latest---\texttt{set} confirmed at
 $n{=}\nSetFuzzy{}$ under the relaxed-grounding arm, \S\ref{sec:robust}), not as a
@@ -115,7 +115,7 @@ queries admit hiding at least 80\% of tool latency.
 This blended figure mixes two populations and two notions of stabilization, and we
 report it decomposed. On the \nRetrPct{} of queries with retrieved gold---where
 $t^\star=t_{\mathrm{suf}}$ reflects evidence actually in hand---\streamSufPct{} are
-streamable; on the remaining $78.7\%$, where we fall back to the grounding-free
+streamable; on the remaining \nFallbackPct{}, where we fall back to the grounding-free
 $t_{\mathrm{sc}}$ (top-1 stopped moving), \streamScPct{} are. The
 sufficiency-only number, \streamSufPct{}, is the one that matches our framing and is
 the honest headline for ``evidence is retrievable in time''; the \streamPct{} blend
@@ -244,7 +244,7 @@ express---and whose $H$ is nonetheless maximal.}
 early (\S5.1). To bound that bias we re-derive $d^\star$ with a deliberately
 \emph{relaxed} matcher---bag-of-content-token containment rather than contiguous
 substring (\S\ref{sec:method})---which trades precision for recall and so expands the
-groundable population. Groundability rises from $35.4\%$ to \groundFuzzyPct{} and the
+groundable population. Groundability rises from \nGroundPct{} to \groundFuzzyPct{} and the
 retrieved-gold rate from \nRetrPct{} to \retrFuzzyPct{} (a sixth more questions). If
 the early-stabilization result were largely a selection artifact, admitting these
 harder-to-ground questions should pull $\phi_{\mathrm{suf}}$ up sharply. It does not:
@@ -289,9 +289,9 @@ $\phi_{\mathrm{suf}}$ we report. We test this directly by re-running the full sw
 with a dense bi-encoder (\texttt{all-MiniLM-L6-v2}, cosine over the same passages)
 in place of BM25. The early-stabilization finding is not a lexical artifact: under
 dense retrieval sufficiency stabilizes if anything \emph{later}, not earlier (mean
-$\phi_{\mathrm{suf}}\,0.26\to\phiSufDense{}$, median $0.14\to\phiSufDenseMed{}$;
-$\phi_{\mathrm{sc}}\,0.67\to\phiScDense{}$), while the dense retriever surfaces gold
-for \emph{more} questions (retrieved-gold $21.3\%\to\retrDensePct{}$). A semantic
+$\phi_{\mathrm{suf}}\,\phiSufMean{}\to\phiSufDense{}$, median $\phiSufMed{}\to\phiSufDenseMed{}$;
+$\phi_{\mathrm{sc}}\,\phiScMean{}\to\phiScDense{}$), while the dense retriever surfaces gold
+for \emph{more} questions (retrieved-gold $\nRetrPct{}\to\retrDensePct{}$). A semantic
 retriever that does not key on early keywords thus still finds the answer-bearing
 passage well before the query ends---median $\phi_{\mathrm{suf}}=\phiSufDenseMed{}$,
 within the first quarter of the utterance. The by-type ordering is preserved

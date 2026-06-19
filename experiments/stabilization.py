@@ -7,7 +7,7 @@ derive:
   t_suf : sufficiency stabilization (smallest t whose top-k contains a gold passage)
   phi   : t*/n
   V     : top-1 volatility after the full-query doc is first reached
-  H     : hidden latency bound = min(L, max(0, (n - t*) * delta))
+  H     : hidden latency bound = min(L, max(0, (n - t*) / delta))  (delta in w/s)
 """
 from __future__ import annotations
 

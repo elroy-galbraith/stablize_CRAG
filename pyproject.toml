@@ -14,11 +14,16 @@ plot = ["matplotlib>=3.8"]
 # Dense-retriever condition (H4 / PROPOSAL_2 Phase 1): run_study.py --retriever dense.
 # Pulls torch + transformers transitively; CPU inference is sufficient.
 dense = ["sentence-transformers>=2.3"]
+# RQ4 inferential statistics (paper Sec. 5.2): experiments/stats.py — Kruskal--Wallis,
+# epsilon^2, Dunn/Holm post-hoc, and the seeded bootstrap CIs behind the by-type figure.
+stats = ["numpy>=1.24", "scipy>=1.10"]
 # Convenience: everything optional that the current pipeline can use.
-all = ["beautifulsoup4>=4.12", "matplotlib>=3.8", "sentence-transformers>=2.3"]
+all = ["beautifulsoup4>=4.12", "matplotlib>=3.8", "sentence-transformers>=2.3",
+       "numpy>=1.24", "scipy>=1.10"]
 
-# NOT YET WIRED (see PROPOSAL.md §5/§7): the RQ4 phi-on-features regression would
-# add a stats lib (e.g. statsmodels/scikit-learn). Add as an extra when implemented.
+# NOT YET WIRED (see PROPOSAL.md §5/§7): the RQ4 phi-on-features regression (the
+# explanatory model) would add e.g. statsmodels/scikit-learn. The RQ4 significance
+# tests themselves are wired — see experiments/stats.py under the [stats] extra.
 
 [tool.uv]
 package = false

@@ -15,7 +15,7 @@ four research questions (RQ1 descriptive φ distribution; RQ2 streamable fractio
 vs. tool latency L and cadence δ; RQ3 validate the bound against the real
 pipeline; RQ4 which query features predict early vs. late stabilization) and the
 formal metric definitions the code implements verbatim: `t_sc`, `t_suf`, `φ=t*/n`,
-volatility `V`, and the hidden-latency bound `H = min(L, max(0, (n−t*)·δ))`.
+volatility `V`, and the hidden-latency bound `H = min(L, max(0, (n−t*)/δ))` (δ in w/s).
 
 The `run_study.py` CLI flags are the proposal's experimental-design factor grid:
 `--L` (tool latency), `--delta` (δ, input cadence words/sec), `--top-k`
@@ -61,6 +61,14 @@ test — use it to verify changes end-to-end.
   (`measured_saved_ms` vs `H_predicted_ms`) — written only with `--latency-n`. This is
   the **only** result not recoverable from the per-question CSV, so it must be persisted.
 - `--plot` → `--plot-out` (`phi_distribution.png`): the φ_suf histogram.
+
+**Canonical artifacts for the paper.** The BM25 split-0, k=3 numbers reported in
+`paper/` are sourced from `results/stab_k3.{summary.json,csv}` (central cell
+L=600, δ=3, θ=0.8) and the RQ3 replays `results/latency_k3*.csv`. BM25 self-consistency
+has tie-break nondeterminism, so an independent rerun shifts `phi_sc` median / volatility
+share at the 2nd decimal — re-fill macros from `stab_k3.*`, not from a fresh run.
+The dense arm is `results/stabilization.split0.dense.*`; RQ4 inferential stats come
+from `experiments/stats.py` → `results/rq4_stats.json`.
 
 Get the CRAG data (CC BY-NC 4.0, research only) — place in `data/`:
 ```bash
