@@ -66,6 +66,41 @@ def rq4_ranking(summary):
     return sorted(items, key=lambda kv: (kv[1] is None, kv[1]))
 
 
+def _avg_ranks(values):
+    """Average (fractional) ranks for `values`, ties shared — for Spearman."""
+    order = sorted(range(len(values)), key=lambda i: values[i])
+    ranks = [0.0] * len(values)
+    i = 0
+    while i < len(order):
+        j = i
+        while j + 1 < len(order) and values[order[j + 1]] == values[order[i]]:
+            j += 1
+        avg = (i + j) / 2.0 + 1.0  # 1-based average rank over the tie block
+        for k in range(i, j + 1):
+            ranks[order[k]] = avg
+        i = j + 1
+    return ranks
+
+
+def rq4_spearman(a, b):
+    """Spearman rho between the two retrievers' phi_suf ordering over the question
+    types present in BOTH, plus the small-n types (n<10 in either) whose ranks are
+    noise. Returns (rho, n_types, low_n_types)."""
+    ta = {qt: v for qt, v in _g(a, "rq4_phi_suf_by_question_type", default={}).items()}
+    tb = {qt: v for qt, v in _g(b, "rq4_phi_suf_by_question_type", default={}).items()}
+    common = sorted(set(ta) & set(tb))
+    if len(common) < 3:
+        return None, len(common), []
+    va = [ta[qt]["mean_phi_suf"] for qt in common]
+    vb = [tb[qt]["mean_phi_suf"] for qt in common]
+    ra, rb = _avg_ranks(va), _avg_ranks(vb)
+    d2 = sum((x - y) ** 2 for x, y in zip(ra, rb))
+    n = len(common)
+    rho = 1 - 6 * d2 / (n * (n * n - 1))
+    low_n = [qt for qt in common if ta[qt]["n"] < 10 or tb[qt]["n"] < 10]
+    return rho, n, low_n
+
+
 def print_markdown(la, lb, a, b):
     print(f"\n## RQ1/RQ2/RQ3 - {la} vs {lb}\n")
     print(f"| metric | {la} | {lb} |")
@@ -81,9 +116,17 @@ def print_markdown(la, lb, a, b):
         ca = f"{ra[i][0]} -> {_fmt(ra[i][1])}" if i < len(ra) else ""
         cb = f"{rb[i][0]} -> {_fmt(rb[i][1])}" if i < len(rb) else ""
         print(f"| {i+1} | {ca} | {cb} |")
-    agree = [x[0] for x in ra] == [x[0] for x in rb]
-    print(f"\n_Question-type ordering agrees across retrievers: **{agree}**_ "
-          "(the Phase 1 entity-position account survives if True)._")
+    exact = [x[0] for x in ra] == [x[0] for x in rb]
+    rho, n_types, low_n = rq4_spearman(a, b)
+    print(f"\n_Exact ordering identical: **{exact}**. "
+          f"Spearman rho (phi_suf rank, {n_types} types): "
+          f"**{_fmt(rho, 2) if rho is not None else 'n/a'}**._")
+    if low_n:
+        print(f"_Caution: low-n types (n<10 in a retriever), ranks noisy: "
+              f"{', '.join(low_n)}._")
+    print("_Phase 1 question: the entity-position account survives if the "
+          "early-stabilizing types (aggregation, comparison) rank near the top "
+          "under both retrievers; rho quantifies overall agreement._")
 
 
 def print_latex(la, lb, a, b):
