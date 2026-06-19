@@ -79,22 +79,30 @@ the answer-bearing result. On the CRAG benchmark (\nSplitZero{} validation
 questions) we (i) measure the distribution of stabilization, (ii) derive a
 model-agnostic bound $H$ on the portion of tool latency that can be hidden behind
 the user's remaining input, as a function of tool latency $L$ and input cadence
-$\delta$, (iii) validate against a working streaming pipeline that realized
-savings meet or exceed this bound, and (iv) identify which query properties
-predict early versus late stabilization. The study requires no model training and
-runs on commodity CPU hardware. All experiments use CRAG (English), BM25 retrieval,
-and a uniform-word-stream proxy for input cadence; speech is the motivating
-application but is not directly tested. We find that at a realistic operating
-point ($L{=}600$\,ms, $\delta{=}3$\,w/s, $\theta{=}0.8$), \streamPct{} of queries
-across the full benchmark admit substantial latency hiding---a blended figure that
-mixes sufficiency stabilization on the \nRetrPct{} of questions where gold evidence
-is verbatim-present and BM25-retrievable (\streamSufPct{} streamable on this
-favorable slice) with a grounding-free top-1-settling fallback on the remainder.
-On the favorable slice, $\phi_{\mathrm{suf}}$ is bracketed to
-$[\phiSufMean{},\,\phiSufFuzzy{}]$ by exact and relaxed grounding---both early.
-Question type produces a significant but coarse early/late split
-(Kruskal--Wallis $p=\kwAllP{}$, $\varepsilon^2{=}0.04$), directly informing when
-a learned speculative trigger is worth its cost.
+$\delta$, (iii) validate it against a working streaming pipeline---where realized
+savings meet or exceed the bound \emph{in aggregate}, establishing $H$ as a
+conservative aggregate floor rather than a per-query predictor (its per-query rank
+correlation with measured savings is near zero, \S5.4)---and (iv) identify which
+query properties predict early versus late stabilization. The study requires no
+model training and runs on commodity CPU hardware. All experiments use CRAG
+(English), BM25 retrieval, and a uniform-word-stream proxy for input cadence;
+speech is the motivating application but is not directly tested. We report latency
+hiding decomposed rather than blended. At a realistic operating point
+($L{=}600$\,ms, $\delta{=}3$\,w/s, $\theta{=}0.8$), on the \nRetrPct{} of questions
+where gold evidence is verbatim-present and BM25-retrievable, \streamSufPct{} are
+streamable under the operationally meaningful sufficiency criterion; on the
+remaining majority, a grounding-free top-1-settling fallback---which signals only
+that the lexical top-1 has settled, not that gold is in hand---yields \streamScPct{}.
+The two combine to a \streamPct{} blend over the full benchmark, but they measure
+different things and the favorable sufficiency figure is conditional on that
+\nRetrPct{} slice; because BM25 retrieves on early lexical anchors, that slice may
+itself bias stabilization early, and a dense-retriever replication is the main open
+confound. On the favorable slice, $\phi_{\mathrm{suf}}$ is bracketed to
+$[\phiSufMean{},\,\phiSufFuzzy{}]$ by exact and relaxed grounding---both early,
+though still conditional on the slice. Question type produces a statistically
+significant but small early/late split (Kruskal--Wallis $p=\kwAllP{}$,
+$\varepsilon^2{=}0.04$, $\sim4\%$ of rank variance), a weak type-level tendency
+rather than a precise trigger rule.
 \end{abstract}
 
 \section{Introduction}
@@ -121,13 +129,14 @@ early case is common and the late case is the rarer failure mode---and we report
 the distribution as found rather than as hypothesized.
 
 We study this directly. By characterizing tool-intent stabilization as a
-measurable, query-intrinsic quantity, we obtain (i) a model-agnostic bound on the
-share of tool latency that can be hidden behind ongoing input, computable
-\emph{before} any system is built; (ii) a principled
-account of the failure mode; (iii) actionable guidance on whether a learned
-trigger is worth its cost; and (iv) results that transfer across text and speech
-because the quantity is modality-agnostic. Our contribution is measurement and
-analysis rather than a new system.
+measurable, query-intrinsic quantity, we obtain (i) a model-agnostic
+\emph{aggregate} bound on the share of tool latency that can be hidden behind
+ongoing input, computable \emph{before} any system is built; (ii) a principled
+account of the failure mode; (iii) a coarse build/skip signal---weak at the level
+of an individual query---for whether a learned trigger is worth its cost; and
+(iv) results that transfer across text and speech because the quantity is
+modality-agnostic. Our contribution is measurement and analysis rather than a new
+system.
 
 \section{Background and Related Work}
 Retrieval-Augmented Generation~\cite{lewis2020rag} grounds generation in
@@ -343,9 +352,29 @@ by varying top-$k$.
 population excludes non-verbatim answers; reported $\phi_{\mathrm{suf}}$ statistics
 are conditional on groundability, and we report $t_{\mathrm{sc}}$ as a
 grounding-free check.
-\paragraph{Retriever and benchmark.} BM25 is lexical and phrasing-sensitive, and
-results are from a single benchmark; a dense-retriever condition and a second QA
-set are natural extensions.
+\paragraph{Fallback population.} On the $78.7\%$ of queries where BM25 never
+surfaces the gold passage from any prefix, stabilization is measured only by
+$t_{\mathrm{sc}}$ (when the top-1 stops moving). If the top-1 in this population is
+the wrong document, early settling is \emph{stable mis-retrieval}, not evidence that
+the speculative query was right: $t_{\mathrm{sc}}$ certifies that intent has
+\emph{stopped changing}, not that it is \emph{correct}. This is the central gap
+between our measurement and end-to-end streaming-RAG quality, and it is why we keep
+the sufficiency and self-consistency populations separate throughout (\S5.3) rather
+than reading the blended streamable fraction as an evidence-quality claim. Our RQ3
+replay finds the realized-saving and net-negative rates comparable across the two
+populations at $L{=}600$ (\S5.3), but that probes \emph{perceived latency}, not
+retrieval correctness, on the fallback set.
+
+\paragraph{Retriever and benchmark.} BM25 is lexical and phrasing-sensitive, and is
+known to retrieve on early topical anchors. Because $t_{\mathrm{suf}}$ asks only when
+the gold page enters the top-$k$, that early-anchor behavior could itself drive the
+low $\phi_{\mathrm{suf}}$ we report---a dense or learned retriever weights terms
+differently and might surface gold later (or earlier). This is the principal
+confound on our central early-stabilization claim; our two grounding arms bound the
+\emph{population}-selection bias (\S\ref{sec:robust}) but not this
+\emph{retriever}-induced one. A dense-retriever condition and a second QA set are
+therefore the natural---and, for a methods-heavy venue, close to required---next
+steps, not optional polish.
 
 \bibliographystyle{acl_natbib}
 \bibliography{refs}

@@ -85,7 +85,14 @@ retrieval-sufficiency stabilization is governed by entity position in the
 utterance, which is not aligned with reasoning complexity. This entity-position
 account is carried by the well-populated classes (\texttt{simple},
 \texttt{comparison}, \texttt{aggregation}, \texttt{simple\_w\_condition}), so it
-does not hinge on the noisy small-$n$ cells.
+does not hinge on the noisy small-$n$ cells. We present it as an explanation
+motivated by the data rather than one we have isolated: it yields a directly
+falsifiable prediction---that the word position of the first named entity should
+track $t_{\mathrm{suf}}$ more tightly than question type does---which a lightweight
+entity-tagging pass over the queries could test without any new retrieval. If that
+correlation held, first-entity position would also furnish a far cheaper deployment
+signal than the full prefix-retrieval sweep. We flag both as the natural next
+measurement.
 
 \begin{figure}[t]
 \centering
@@ -190,7 +197,16 @@ near-uniform offset that swamps the cross-query signal $H$ encodes. Second, the
 failure mode is \emph{negative}, and $H$'s $\max(0,\cdot)$ floor cannot represent it.
 RQ3 thus confirms $H$ as a conservative aggregate bound but \emph{not} a per-query
 ranker; a predictive model would need to add the query-generation overlap to the
-hideable budget and replace the floor with a mis-fire penalty.
+hideable budget and replace the floor with a mis-fire penalty.\footnote{%
+Formalizing the first correction without re-running anything: a tighter aggregate
+bound $H' = \min(L,\,\mathrm{residual}) + \min(t_{\mathrm{qg}},\,\mathrm{residual})$
+folds the query-generation step ($t_{\mathrm{qg}}\approx\qgenMs{}$\,ms), which the
+pipeline overlaps with input regardless of retrieval correctness, into the hideable
+budget. At $L{=}600$ this predicts $\approx\hPred{}+\qgenMs{}\approx1180$\,ms against
+the measured \measSaved{}\,ms---recovering the overshoot to within noise. $H'$ is
+still aggregate, not per-query: it adds a near-constant offset and so cannot rescue
+the rank correlation, and it inherits the $\max(0,\cdot)$ floor that the negative
+tail violates.}
 
 The negative tail makes the second point concrete and reconnects volatility $V$ to
 outcomes. The single query that \emph{loses} time---a 17-word comparison
@@ -199,10 +215,14 @@ $H$ is \emph{maximal} ($1000$\,ms): with $n-t^\star{=}4$ words of nominal residu
 bound rates it fully streamable while the fixed-interval trigger, firing before intent
 settles at word~13, mis-retrieves and pays a re-fire penalty. Notably this query has
 $V{=}0$, so volatility did \emph{not} flag it---the risk here is \emph{late}
-stabilization under an early-firing trigger, not post-stabilization churn. The
-actionable lesson is that an early-commit safeguard should gate on $\phi$ (how late
-intent settles relative to the trigger cadence) at least as much as on $V$; validating
-which signal best predicts mis-fires at scale is the natural next step.
+stabilization under an early-firing trigger, not post-stabilization churn. This is a
+single-query observation ($n{=}1$ net-negative across the replayed populations), so we
+offer the reading as a mechanism-level intuition rather than a validated design rule:
+it \emph{suggests} that an early-commit safeguard should gate on $\phi$ (how late
+intent settles relative to the trigger cadence) at least as much as on $V$. Whether
+$\phi$ in fact out-predicts $V$ for mis-fires requires a larger negative sample---a
+trigger-aggressiveness and large-$L$ sweep that deliberately induces mis-fires---which
+we leave to future work and do not claim to have established here.
 
 \begin{figure}[t]
 \centering
