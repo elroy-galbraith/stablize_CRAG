@@ -1,0 +1,4 @@
+interaction_id,domain,question_type,static_or_dynamic,n_words,n_passages,groundable,retrieved_gold,t_sc,phi_sc,t_suf,phi_suf,volatility
+ex-early,open,simple,slow-changing,10,3,True,True,1,0.1,1,0.1,0
+ex-late,sports,multi-hop,static,15,3,True,True,10,0.6667,1,0.0667,0
+ex-fp,music,false_premise,static,12,1,False,False,1,0.0833,,,0

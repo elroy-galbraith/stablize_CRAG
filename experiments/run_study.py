@@ -127,7 +127,8 @@ def summarize(rows, L_ms, delta_wps, theta):
     }
 
 
-async def validate_latency(examples, L_ms, delta_wps, n_max, out_csv, pop="suf"):
+async def validate_latency(examples, L_ms, delta_wps, n_max, out_csv, pop="suf",
+                           make_broker=None):
     """RQ3: compare measured perceived latency (baseline vs streaming) to the
     H-bound, on a small subset, using the existing async harness. Writes a
     per-question CSV and returns a structured summary dict (None if no rows).
@@ -137,6 +138,9 @@ async def validate_latency(examples, L_ms, delta_wps, n_max, out_csv, pop="suf")
     majority that has no retrieved gold (t* = t_sc), which is the population most
     exposed to trigger mis-fires — used to estimate the downside rate H ignores."""
     from streaming_rag import Config, DirectRetrievalBroker, run_baseline, run_streaming
+
+    if make_broker is None:
+        make_broker = lambda docs: DirectRetrievalBroker(docs, exec_latency_ms=L_ms)
 
     cfg = Config(words_per_sec=delta_wps, trigger_interval_words=3, max_threads=4)
     rows = []
@@ -148,8 +152,8 @@ async def validate_latency(examples, L_ms, delta_wps, n_max, out_csv, pop="suf")
         if pop == "sc" and ex.retrieved_gold_stab:        # want the fallback majority
             continue
         docs = ex.passages
-        b = await run_baseline(ex.query, DirectRetrievalBroker(docs, exec_latency_ms=L_ms), cfg)
-        s = await run_streaming(ex.query, DirectRetrievalBroker(docs, exec_latency_ms=L_ms), cfg)
+        b = await run_baseline(ex.query, make_broker(docs), cfg)
+        s = await run_streaming(ex.query, make_broker(docs), cfg)
         t_star = ex.stab.t_suf or ex.stab.t_sc
         rows.append({
             "interaction_id": ex.interaction_id,
@@ -195,6 +199,10 @@ def main():
     ap.add_argument("--split", type=int, default=0)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--top-k", type=int, default=3)
+    ap.add_argument("--retriever", choices=["bm25", "dense"], default="bm25",
+                    help="retriever condition for the sweep + RQ3 (PROPOSAL_2 Phase 1)")
+    ap.add_argument("--dense-model", default="sentence-transformers/all-MiniLM-L6-v2",
+                    help="SentenceTransformer model id when --retriever dense")
     ap.add_argument("--chunk-words", type=int, default=120)
     ap.add_argument("--out", default="results/stabilization.csv")
     ap.add_argument("--L", type=float, default=600.0, help="tool latency ms (RQ2/RQ3)")
@@ -214,11 +222,25 @@ def main():
     ap.add_argument("--plot-out", default="results/phi_distribution.png")
     args = ap.parse_args()
 
+    # Retriever condition: BM25 (zero-dep) or dense (loads the model once, reused
+    # across all questions and the RQ3 broker). dense import is lazy.
+    from streaming_rag import BM25
+    dense_model = None
+    if args.retriever == "dense":
+        from dense import DenseRetriever, DenseRetrievalBroker, load_dense_model
+        dense_model = load_dense_model(args.dense_model)
+        make_retriever = lambda passages: DenseRetriever(passages, dense_model)
+        make_broker = lambda docs: DenseRetrievalBroker(docs, dense_model, exec_latency_ms=args.L)
+    else:
+        make_retriever = BM25
+        make_broker = None  # validate_latency defaults to the BM25 DirectRetrievalBroker
+
     rows = []
     keep_for_latency = []
     for ex in load_crag(args.data, split=args.split, limit=args.limit,
                         chunk_words=args.chunk_words, grounding=args.grounding):
-        stab = stabilization(ex.query, ex.passages, ex.gold, top_k=args.top_k)
+        stab = stabilization(ex.query, ex.passages, ex.gold, top_k=args.top_k,
+                             make_retriever=make_retriever)
         if stab is None:
             continue
         rows.append({
@@ -247,6 +269,8 @@ def main():
     summary["params"] = {
         "data": args.data, "split": args.split, "limit": args.limit,
         "top_k": args.top_k, "chunk_words": args.chunk_words,
+        "retriever": args.retriever,
+        "dense_model": args.dense_model if args.retriever == "dense" else None,
         "L_ms": args.L, "delta_wps": args.delta, "theta": args.theta,
         "per_question_csv": args.out,
     }
@@ -256,7 +280,7 @@ def main():
         import asyncio
         summary["rq3"] = asyncio.run(
             validate_latency(keep_for_latency, args.L, args.delta, args.latency_n,
-                             args.latency_csv, pop=args.latency_pop)
+                             args.latency_csv, pop=args.latency_pop, make_broker=make_broker)
         )
 
     with open(args.summary_json, "w") as f:

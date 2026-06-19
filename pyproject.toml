@@ -11,12 +11,14 @@ dependencies = []
 html = ["beautifulsoup4>=4.12"]
 # Enables run_study.py --plot (phi distribution histogram).
 plot = ["matplotlib>=3.8"]
+# Dense-retriever condition (H4 / PROPOSAL_2 Phase 1): run_study.py --retriever dense.
+# Pulls torch + transformers transitively; CPU inference is sufficient.
+dense = ["sentence-transformers>=2.3"]
 # Convenience: everything optional that the current pipeline can use.
-all = ["beautifulsoup4>=4.12", "matplotlib>=3.8"]
+all = ["beautifulsoup4>=4.12", "matplotlib>=3.8", "sentence-transformers>=2.3"]
 
-# NOT YET WIRED (see PROPOSAL.md §5/§7): the dense-retriever condition (H4) would
-# add sentence-transformers + torch, and the RQ4 phi-on-features regression would
-# add a stats lib (e.g. statsmodels/scikit-learn). Add as extras when implemented.
+# NOT YET WIRED (see PROPOSAL.md §5/§7): the RQ4 phi-on-features regression would
+# add a stats lib (e.g. statsmodels/scikit-learn). Add as an extra when implemented.
 
 [tool.uv]
 package = false

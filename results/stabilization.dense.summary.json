@@ -11,7 +11,7 @@
   "rq1": {
     "phi_sc": {
       "n": 3,
-      "mean": 0.3277666666666667,
+      "mean": 0.2833333333333333,
       "median": 0.1
     },
     "phi_suf": {
@@ -19,8 +19,8 @@
       "mean": 0.08335000000000001,
       "median": 0.08335000000000001
     },
-    "volatility_mean": 0.6666666666666666,
-    "volatility_share_gt0": 0.3333333333333333
+    "volatility_mean": 0,
+    "volatility_share_gt0": 0.0
   },
   "rq4_phi_suf_by_question_type": {
     "multi-hop": {
@@ -336,22 +336,22 @@
     "limit": null,
     "top_k": 3,
     "chunk_words": 120,
-    "retriever": "bm25",
-    "dense_model": null,
+    "retriever": "dense",
+    "dense_model": "sentence-transformers/all-MiniLM-L6-v2",
     "L_ms": 600.0,
     "delta_wps": 3.0,
     "theta": 0.8,
-    "per_question_csv": "results/stabilization.csv"
+    "per_question_csv": "results/stabilization.dense.csv"
   },
   "rq3": {
     "n": 2,
     "pop": "suf",
     "L_ms": 600.0,
     "delta_wps": 3.0,
-    "measured_saved_ms_mean": 1133.995,
+    "measured_saved_ms_mean": -1180.1999999999998,
     "H_predicted_ms_mean": 600.0,
-    "negative_saving_count": 0,
-    "negative_saving_rate": 0.0,
-    "csv": "results/latency_validation.csv"
+    "negative_saving_count": 2,
+    "negative_saving_rate": 1.0,
+    "csv": "results/latency.dense.csv"
   }
 }
