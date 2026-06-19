@@ -23,9 +23,18 @@ from __future__ import annotations
 
 from typing import Optional
 
-from streaming_rag import DirectRetrievalBroker
+from streaming_rag import DirectRetrievalBroker, Reflector, _relevance, _tok
 
 DEFAULT_DENSE_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+
+# Cosine relevance bar for the Reflector under dense retrieval. The vendored
+# Reflector's default (2.0) is on BM25's unbounded score scale; dense cosine
+# similarities live in [-1, 1], so 2.0 rejects every speculative result and the
+# streaming pipeline never commits. Calibration (all-MiniLM-L6-v2): genuinely
+# relevant query-passage pairs score ~0.5-0.75, off-topic pairs ~0.2-0.4, so 0.4
+# is a conservative accept bar; the Reflector's content-word coverage check is a
+# second, retriever-agnostic gate. Tunable via run_study.py --reflector-threshold.
+DENSE_SUFFICIENCY_THRESHOLD = 0.4
 
 
 def load_dense_model(name: str = DEFAULT_DENSE_MODEL):
@@ -54,11 +63,16 @@ class DenseRetriever:
     similarity is a plain dot product.
     """
 
-    def __init__(self, passages: list[str], model):
+    def __init__(self, passages: list[str], model, sufficiency_threshold: float = None):
         import numpy as np
 
         self.passages = passages
         self.model = model
+        # Declared score scale, read by ScaleAwareReflector (None -> module default).
+        self.sufficiency_threshold = (
+            sufficiency_threshold if sufficiency_threshold is not None
+            else DENSE_SUFFICIENCY_THRESHOLD
+        )
         # (N, d) normalized passage matrix — encoded once per question.
         self.emb = np.asarray(
             model.encode(passages, normalize_embeddings=True, convert_to_numpy=True),
@@ -104,6 +118,27 @@ class DenseRetriever:
         return [(int(i), float(row[i])) for i in order]
 
 
+class ScaleAwareReflector(Reflector):
+    """Reflector whose relevance bar comes from the retriever's declared score
+    scale (`scorer.sufficiency_threshold`) instead of a fixed BM25-scale constant.
+
+    Falls back to the base `score_threshold` when the scorer declares no scale, so
+    it is a strict generalization of the vendored Reflector: identical behavior for
+    BM25 (no `sufficiency_threshold` attr -> 2.0), scale-correct for dense. The
+    content-word coverage gate (retriever-agnostic) is unchanged."""
+
+    def sufficient(self, result, query, scorer=None) -> bool:
+        if result is None or not result.hits:
+            return False
+        thr = getattr(scorer, "sufficiency_threshold", self.score_threshold)
+        if _relevance(result, query, scorer) < thr:
+            return False
+        q_terms = set(_tok(query))
+        doc_terms = set(_tok(result.hits[0][1]))
+        coverage = len(q_terms & doc_terms) / max(len(q_terms), 1)
+        return coverage >= self.coverage_threshold
+
+
 class DenseRetrievalBroker(DirectRetrievalBroker):
     """RQ3 broker backed by `DenseRetriever`. Subclasses the vendored
     `DirectRetrievalBroker` and only swaps the retriever stored in `self.bm25`
@@ -117,9 +152,11 @@ class DenseRetrievalBroker(DirectRetrievalBroker):
         exec_latency_ms: float = 400.0,
         transport_overhead_ms: float = 0.0,
         top_k: int = 3,
+        sufficiency_threshold: float = None,
     ):
         self.corpus = corpus
-        self.bm25 = DenseRetriever(corpus, model)  # duck-typed scorer/search backend
+        # duck-typed scorer/search backend; carries its own sufficiency_threshold
+        self.bm25 = DenseRetriever(corpus, model, sufficiency_threshold=sufficiency_threshold)
         self.exec_latency_ms = exec_latency_ms
         self.transport_overhead_ms = transport_overhead_ms
         self.top_k = top_k

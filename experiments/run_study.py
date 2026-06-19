@@ -128,7 +128,7 @@ def summarize(rows, L_ms, delta_wps, theta):
 
 
 async def validate_latency(examples, L_ms, delta_wps, n_max, out_csv, pop="suf",
-                           make_broker=None):
+                           make_broker=None, reflector=None):
     """RQ3: compare measured perceived latency (baseline vs streaming) to the
     H-bound, on a small subset, using the existing async harness. Writes a
     per-question CSV and returns a structured summary dict (None if no rows).
@@ -153,7 +153,7 @@ async def validate_latency(examples, L_ms, delta_wps, n_max, out_csv, pop="suf",
             continue
         docs = ex.passages
         b = await run_baseline(ex.query, make_broker(docs), cfg)
-        s = await run_streaming(ex.query, make_broker(docs), cfg)
+        s = await run_streaming(ex.query, make_broker(docs), cfg, reflector=reflector)
         t_star = ex.stab.t_suf or ex.stab.t_sc
         rows.append({
             "interaction_id": ex.interaction_id,
@@ -203,6 +203,9 @@ def main():
                     help="retriever condition for the sweep + RQ3 (PROPOSAL_2 Phase 1)")
     ap.add_argument("--dense-model", default="sentence-transformers/all-MiniLM-L6-v2",
                     help="SentenceTransformer model id when --retriever dense")
+    ap.add_argument("--reflector-threshold", type=float, default=None,
+                    help="RQ3 Reflector relevance bar for --retriever dense (cosine; "
+                         "None=retriever default ~0.4). Ignored for BM25 (uses 2.0).")
     ap.add_argument("--chunk-words", type=int, default=120)
     ap.add_argument("--out", default="results/stabilization.csv")
     ap.add_argument("--L", type=float, default=600.0, help="tool latency ms (RQ2/RQ3)")
@@ -226,11 +229,18 @@ def main():
     # across all questions and the RQ3 broker). dense import is lazy.
     from streaming_rag import BM25
     dense_model = None
+    reflector = None  # RQ3: None -> validate_latency uses the default BM25-scale Reflector
     if args.retriever == "dense":
-        from dense import DenseRetriever, DenseRetrievalBroker, load_dense_model
+        from dense import (DenseRetriever, DenseRetrievalBroker, ScaleAwareReflector,
+                           load_dense_model)
         dense_model = load_dense_model(args.dense_model)
+        thr = args.reflector_threshold
         make_retriever = lambda passages: DenseRetriever(passages, dense_model)
-        make_broker = lambda docs: DenseRetrievalBroker(docs, dense_model, exec_latency_ms=args.L)
+        make_broker = lambda docs: DenseRetrievalBroker(
+            docs, dense_model, exec_latency_ms=args.L, sufficiency_threshold=thr)
+        # Scale-aware Reflector reads the retriever's declared cosine threshold,
+        # so dense speculation is accepted instead of always falling through.
+        reflector = ScaleAwareReflector()
     else:
         make_retriever = BM25
         make_broker = None  # validate_latency defaults to the BM25 DirectRetrievalBroker
@@ -271,6 +281,7 @@ def main():
         "top_k": args.top_k, "chunk_words": args.chunk_words,
         "retriever": args.retriever,
         "dense_model": args.dense_model if args.retriever == "dense" else None,
+        "reflector_threshold": args.reflector_threshold if args.retriever == "dense" else None,
         "L_ms": args.L, "delta_wps": args.delta, "theta": args.theta,
         "per_question_csv": args.out,
     }
@@ -280,7 +291,8 @@ def main():
         import asyncio
         summary["rq3"] = asyncio.run(
             validate_latency(keep_for_latency, args.L, args.delta, args.latency_n,
-                             args.latency_csv, pop=args.latency_pop, make_broker=make_broker)
+                             args.latency_csv, pop=args.latency_pop, make_broker=make_broker,
+                             reflector=reflector)
         )
 
     with open(args.summary_json, "w") as f:

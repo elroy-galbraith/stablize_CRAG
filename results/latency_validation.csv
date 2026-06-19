@@ -1,3 +1,3 @@
 interaction_id,question_type,n_words,t_star,measured_saved_ms,H_predicted_ms
-ex-early,simple,10,1,1228.94,600.0
-ex-late,multi-hop,15,1,1039.05,600.0
+ex-early,simple,10,1,1213.51,600.0
+ex-late,multi-hop,15,1,1017.78,600.0

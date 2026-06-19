@@ -338,6 +338,7 @@
     "chunk_words": 120,
     "retriever": "dense",
     "dense_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "reflector_threshold": null,
     "L_ms": 600.0,
     "delta_wps": 3.0,
     "theta": 0.8,
@@ -348,10 +349,10 @@
     "pop": "suf",
     "L_ms": 600.0,
     "delta_wps": 3.0,
-    "measured_saved_ms_mean": -1180.1999999999998,
+    "measured_saved_ms_mean": 1196.3049999999998,
     "H_predicted_ms_mean": 600.0,
-    "negative_saving_count": 2,
-    "negative_saving_rate": 1.0,
+    "negative_saving_count": 0,
+    "negative_saving_rate": 0.0,
     "csv": "results/latency.dense.csv"
   }
 }
