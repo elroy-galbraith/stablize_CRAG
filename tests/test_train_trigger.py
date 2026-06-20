@@ -1,6 +1,6 @@
 import pytest
 
-from train_trigger import decode_fire_t, analytic_saving
+from train_trigger import decode_fire_t, analytic_saving, fixed_interval_eval, spearman
 
 
 def test_decode_fire_t():
@@ -27,3 +27,15 @@ def test_analytic_saving_premature_is_penalized():
 
 def test_analytic_saving_never_fires():
     assert analytic_saving(None, t_suf=5, n=10, L=600, delta=3, c_waste=600) == 0.0
+
+
+def test_fixed_interval_eval():
+    # interval=2: fires at 2,4,6...; first >= t_suf=5 is 6 -> 3 calls
+    assert fixed_interval_eval(t_suf=5, n=10, interval=2) == (6, 3)
+    # never reaches gold within n -> None, floor(n/interval) calls
+    assert fixed_interval_eval(t_suf=9, n=7, interval=2) == (None, 3)
+
+
+def test_spearman_monotonic():
+    assert spearman([1, 2, 3, 4], [10, 20, 30, 40]) == 1.0
+    assert spearman([1, 2, 3, 4], [40, 30, 20, 10]) == -1.0
