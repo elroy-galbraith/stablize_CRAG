@@ -1,0 +1,24 @@
+from train_trigger import decode_fire_t, analytic_saving
+
+
+def test_decode_fire_t():
+    assert decode_fire_t([1, 2, 3], [0.1, 0.6, 0.9], tau=0.5) == 2
+    assert decode_fire_t([1, 2, 3], [0.1, 0.2, 0.3], tau=0.5) is None
+
+
+def test_analytic_saving_correct_fire():
+    # correct fire at t_suf: H = min(L, (n - fire_t)/delta * 1000)
+    # n=10, fire_t=4, delta=3 -> residual = 6/3*1000 = 2000ms, capped at L=600
+    assert analytic_saving(4, t_suf=4, n=10, L=600, delta=3, c_waste=600) == 600.0
+
+
+def test_analytic_saving_premature_is_penalized():
+    # fire_t=2 < t_suf=5: saving = H(t_suf) - c_waste
+    # H(t_suf=5): residual = (10-5)/3*1000 = 1666 -> cap 600; minus c_waste 600 = 0
+    assert analytic_saving(2, t_suf=5, n=10, L=600, delta=3, c_waste=600) == 0.0
+    # smaller penalty -> positive
+    assert analytic_saving(2, t_suf=5, n=10, L=600, delta=3, c_waste=300) == 300.0
+
+
+def test_analytic_saving_never_fires():
+    assert analytic_saving(None, t_suf=5, n=10, L=600, delta=3, c_waste=600) == 0.0
