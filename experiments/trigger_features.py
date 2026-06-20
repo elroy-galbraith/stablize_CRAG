@@ -163,13 +163,15 @@ def extract(data: str, split: int, top_k: int, ner_fn=spacy_ner,
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", required=True)
+    ap.add_argument("--data", default=None, help="CRAG bz2 path; required only for --benchmark crag")
     ap.add_argument("--split", type=int, required=True)
     ap.add_argument("--top-k", type=int, default=3)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--out", required=True)
     ap.add_argument("--benchmark", default="crag", choices=["crag", "hotpotqa"])
     args = ap.parse_args()
+    if args.benchmark == "crag" and not args.data:
+        ap.error("--data is required for --benchmark crag")
     rows = extract(args.data, args.split, args.top_k, limit=args.limit, benchmark=args.benchmark)
     with open(args.out, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=FEATURE_FIELDS)
