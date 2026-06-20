@@ -22,6 +22,8 @@ stats = ["numpy>=1.24", "scipy>=1.10"]
 trigger = ["scikit-learn>=1.3", "spacy>=3.7", "numpy>=1.24"]
 # Second-benchmark generalization (experiments/benchmarks.py): HuggingFace datasets.
 bench = ["datasets>=2.20"]
+# Global-corpus TIS measurement (experiments/global_corpus.py): scalable CPU BM25.
+global = ["bm25s>=0.2", "numpy>=1.24"]
 # Test runner (no production code depends on it).
 dev = ["pytest>=8.0"]
 # Convenience: everything optional that the current pipeline can use.
