@@ -1,0 +1,22 @@
+{
+  "params": {
+    "benchmark": "hotpotqa",
+    "split": 0,
+    "top_k": 3
+  },
+  "n_questions": 4000,
+  "dual": {
+    "clean": {
+      "n": 3961,
+      "phi_suf_mean": 0.1599,
+      "phi_suf_median": 0.0909,
+      "t_suf_eq_1_rate": 0.5865
+    },
+    "string": {
+      "n": 3351,
+      "phi_suf_mean": 0.2257,
+      "phi_suf_median": 0.1111,
+      "t_suf_eq_1_rate": 0.4864
+    }
+  }
+}
