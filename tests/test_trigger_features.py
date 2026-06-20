@@ -73,3 +73,21 @@ def test_per_word_rows_ungroundable_blank_label():
     assert [r["label"] for r in rows] == ["", ""]
     assert [r["label_sc"] for r in rows] == [1, 1]
     assert rows[0]["retrieved_gold"] is False
+
+
+from trigger_features import extract, FEATURE_FIELDS
+
+
+def test_extract_on_fixture_schema_and_counts():
+    rows = extract("data/crag_fixture.jsonl.bz2", split=0, top_k=3,
+                   ner_fn=lambda q: [])   # no-NER stub keeps it fast/deterministic
+    assert rows, "fixture produced no rows"
+    # one row per word position per question
+    by_q = {}
+    for r in rows:
+        by_q.setdefault(r["interaction_id"], []).append(r)
+    for q, qr in by_q.items():
+        assert [r["t"] for r in qr] == list(range(1, qr[0]["n_words"] + 1))
+    # every declared field is present
+    for r in rows:
+        assert set(FEATURE_FIELDS).issubset(r.keys())

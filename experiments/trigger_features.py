@@ -6,7 +6,12 @@ docs/superpowers/specs/2026-06-20-component-a-trigger-design.md.
 """
 from __future__ import annotations
 
+import argparse
+import csv
 from typing import Optional
+
+from crag import load_crag
+from stabilization import prefix_records, stabilization
 
 _QWORDS = ("who", "what", "when", "where", "which", "why", "how")
 
@@ -118,3 +123,48 @@ def per_word_rows(meta: dict, seq: list[tuple[int, set]], n: int,
             "label_sc": 1 if t >= t_sc else 0,
         })
     return rows
+
+
+FEATURE_FIELDS = [
+    "interaction_id", "question_type", "domain", "retrieved_gold", "n_words", "t",
+    "t_suf", "t_sc", "top1_stable_streak", "top1_changed",
+    "named_entity_detected", "words_since_first_ne", "question_word_type",
+    "label", "label_sc",
+]
+
+
+def extract(data: str, split: int, top_k: int, ner_fn=spacy_ner,
+            limit: Optional[int] = None) -> list[dict]:
+    out = []
+    for ex in load_crag(data, split=split, limit=limit):
+        seq, n = prefix_records(ex.query, ex.passages, top_k)
+        if not seq:
+            continue
+        s = stabilization(ex.query, ex.passages, ex.gold, top_k=top_k)
+        if s is None:
+            continue
+        ne_offsets = ner_fn(ex.query)
+        meta = {"interaction_id": ex.interaction_id, "question_type": ex.question_type,
+                "domain": ex.domain, "query": ex.query}
+        out.extend(per_word_rows(meta, seq, n, s.t_suf, s.t_sc, ne_offsets))
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--data", required=True)
+    ap.add_argument("--split", type=int, required=True)
+    ap.add_argument("--top-k", type=int, default=3)
+    ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--out", required=True)
+    args = ap.parse_args()
+    rows = extract(args.data, args.split, args.top_k, limit=args.limit)
+    with open(args.out, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=FEATURE_FIELDS)
+        w.writeheader()
+        w.writerows(rows)
+    print(f"wrote {len(rows)} per-word rows -> {args.out}")
+
+
+if __name__ == "__main__":
+    main()
