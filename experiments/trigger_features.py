@@ -69,3 +69,52 @@ def spacy_ner(query: str) -> list[int]:
     doc = _load_nlp()(query)
     spans = [(ent.start_char, ent.start_char) for ent in doc.ents]
     return char_spans_to_word_offsets(query, spans)
+
+
+def per_word_rows(meta: dict, seq: list[tuple[int, set]], n: int,
+                  t_suf: Optional[int], t_sc: int, ne_offsets: list[int]) -> list[dict]:
+    """Build per-word feature/label rows for the Component A trigger.
+
+    Args:
+        meta: dict with keys: interaction_id, question_type, domain, query
+        seq: list of (top1_id, all_ids) tuples, one per prefix length 1..n
+        n: total number of words in the query
+        t_suf: word position where top-1 stabilizes on gold (or None if ungroundable)
+        t_sc: word position where top-1 self-consistency achieved
+        ne_offsets: sorted 1-based word indices where named entities start
+
+    Returns:
+        list of dicts, one per word position t=1..n, with keys:
+        interaction_id, question_type, domain, retrieved_gold, n_words, t, t_suf, t_sc,
+        top1_stable_streak, top1_changed, named_entity_detected, words_since_first_ne,
+        question_word_type, label, label_sc
+    """
+    qword = question_word_type(meta["query"])
+    first_ne = first_ne_position(ne_offsets)
+    rows = []
+    streak = 1
+    for i in range(n):
+        t = i + 1
+        top1 = seq[i][0]
+        changed = 1 if (i > 0 and seq[i - 1][0] != top1) else 0
+        streak = 1 if changed else (streak + 1 if i > 0 else 1)
+        ne_det = 1 if (first_ne is not None and t >= first_ne) else 0
+        since = max(0, t - first_ne) if (first_ne is not None and t >= first_ne) else 0
+        rows.append({
+            "interaction_id": meta["interaction_id"],
+            "question_type": meta["question_type"],
+            "domain": meta["domain"],
+            "retrieved_gold": t_suf is not None,
+            "n_words": n,
+            "t": t,
+            "t_suf": t_suf if t_suf is not None else "",
+            "t_sc": t_sc,
+            "top1_stable_streak": streak,
+            "top1_changed": changed,
+            "named_entity_detected": ne_det,
+            "words_since_first_ne": since,
+            "question_word_type": qword,
+            "label": (1 if t >= t_suf else 0) if t_suf is not None else "",
+            "label_sc": 1 if t >= t_sc else 0,
+        })
+    return rows
