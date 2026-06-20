@@ -75,7 +75,23 @@ def test_per_word_rows_ungroundable_blank_label():
     assert rows[0]["retrieved_gold"] is False
 
 
-from trigger_features import extract, FEATURE_FIELDS
+from trigger_features import extract, FEATURE_FIELDS, extract_from_examples
+from crag import CragExample
+
+
+def test_extract_from_examples_counts_and_schema():
+    exs = [
+        CragExample("q1", "who founded microsoft", "x", [], "", "simple", "", 0,
+                    passages=["microsoft was founded by bill gates", "unrelated text"],
+                    gold={0}),
+    ]
+    rows = extract_from_examples(exs, top_k=3, ner_fn=lambda q: [])
+    by_q = {}
+    for r in rows:
+        by_q.setdefault(r["interaction_id"], []).append(r)
+    qr = by_q["q1"]
+    assert [r["t"] for r in qr] == list(range(1, qr[0]["n_words"] + 1))
+    assert set(FEATURE_FIELDS).issubset(qr[0].keys())
 
 
 def test_extract_on_fixture_schema_and_counts():

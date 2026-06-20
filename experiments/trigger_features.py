@@ -133,10 +133,9 @@ FEATURE_FIELDS = [
 ]
 
 
-def extract(data: str, split: int, top_k: int, ner_fn=spacy_ner,
-            limit: Optional[int] = None) -> list[dict]:
+def extract_from_examples(examples, top_k: int, ner_fn=spacy_ner) -> list[dict]:
     out = []
-    for ex in load_crag(data, split=split, limit=limit):
+    for ex in examples:
         seq, n = prefix_records(ex.query, ex.passages, top_k)
         if not seq:
             continue
@@ -150,15 +149,30 @@ def extract(data: str, split: int, top_k: int, ner_fn=spacy_ner,
     return out
 
 
+def _examples(benchmark: str, data: Optional[str], split: int, limit: Optional[int]):
+    if benchmark == "crag":
+        return load_crag(data, split=split, limit=limit)
+    from benchmarks import BENCHMARKS
+    return BENCHMARKS[benchmark](split, limit=limit)
+
+
+def extract(data: str, split: int, top_k: int, ner_fn=spacy_ner,
+            limit: Optional[int] = None, benchmark: str = "crag") -> list[dict]:
+    return extract_from_examples(_examples(benchmark, data, split, limit), top_k, ner_fn)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", required=True)
+    ap.add_argument("--data", default=None, help="CRAG bz2 path; required only for --benchmark crag")
     ap.add_argument("--split", type=int, required=True)
     ap.add_argument("--top-k", type=int, default=3)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--benchmark", default="crag", choices=["crag", "hotpotqa"])
     args = ap.parse_args()
-    rows = extract(args.data, args.split, args.top_k, limit=args.limit)
+    if args.benchmark == "crag" and not args.data:
+        ap.error("--data is required for --benchmark crag")
+    rows = extract(args.data, args.split, args.top_k, limit=args.limit, benchmark=args.benchmark)
     with open(args.out, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=FEATURE_FIELDS)
         w.writeheader()

@@ -1,0 +1,546 @@
+{
+  "params": {
+    "train": "results/hotpotqa_k1/trigger_features.split1.csv",
+    "test": "results/hotpotqa_k1/trigger_features.split0.csv",
+    "tau": 0.5,
+    "L": 600.0,
+    "delta": 3.0,
+    "c_waste": 600.0
+  },
+  "operating_point": {
+    "logreg": {
+      "tau": 0.5,
+      "n_questions": 3631,
+      "mean_saving_ms": 456.2746718075828,
+      "misfire_rate": 0.12944092536491325,
+      "net_negative_rate": 0.20104654365188654,
+      "mean_calls": 1.1294409253649131,
+      "median_saving_correct_fires": 600.0,
+      "spearman_fire_vs_tsuf": 0.2441369693
+    },
+    "gbdt": {
+      "tau": 0.5,
+      "n_questions": 3631,
+      "mean_saving_ms": 310.07068759753975,
+      "misfire_rate": 0.45139080143211235,
+      "net_negative_rate": 0.451666207656293,
+      "mean_calls": 1.4513908014321124,
+      "median_saving_correct_fires": 600.0,
+      "spearman_fire_vs_tsuf": 0.3231327869
+    }
+  },
+  "frontier": {
+    "logreg": [
+      {
+        "tau": 0.05,
+        "n_questions": 3631,
+        "mean_saving_ms": 177.28816671256772,
+        "misfire_rate": 0.6730928118975489,
+        "net_negative_rate": 0.6730928118975489,
+        "mean_calls": 1.673092811897549,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 1.0
+      },
+      {
+        "tau": 0.1,
+        "n_questions": 3631,
+        "mean_saving_ms": 241.73322317084367,
+        "misfire_rate": 0.5656843844670889,
+        "net_negative_rate": 0.5656843844670889,
+        "mean_calls": 1.565684384467089,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.3021738811
+      },
+      {
+        "tau": 0.15,
+        "n_questions": 3631,
+        "mean_saving_ms": 285.1923253465528,
+        "misfire_rate": 0.4932525475075737,
+        "net_negative_rate": 0.4932525475075737,
+        "mean_calls": 1.4932525475075737,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.276401942
+      },
+      {
+        "tau": 0.2,
+        "n_questions": 3631,
+        "mean_saving_ms": 308.60185440190946,
+        "misfire_rate": 0.45331864500137703,
+        "net_negative_rate": 0.45414486367391904,
+        "mean_calls": 1.453318645001377,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2687020467
+      },
+      {
+        "tau": 0.25,
+        "n_questions": 3631,
+        "mean_saving_ms": 362.6181951712109,
+        "misfire_rate": 0.3616083723492151,
+        "net_negative_rate": 0.36353621591847973,
+        "mean_calls": 1.3616083723492152,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2944523668
+      },
+      {
+        "tau": 0.3,
+        "n_questions": 3631,
+        "mean_saving_ms": 386.2847700358028,
+        "misfire_rate": 0.31754337648030845,
+        "net_negative_rate": 0.32167446984301845,
+        "mean_calls": 1.3175433764803084,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2913793409
+      },
+      {
+        "tau": 0.35,
+        "n_questions": 3631,
+        "mean_saving_ms": 422.58331038281466,
+        "misfire_rate": 0.2497934453318645,
+        "net_negative_rate": 0.26053428807491047,
+        "mean_calls": 1.2497934453318644,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2784144206
+      },
+      {
+        "tau": 0.4,
+        "n_questions": 3631,
+        "mean_saving_ms": 446.59873313136876,
+        "misfire_rate": 0.2013219498760672,
+        "net_negative_rate": 0.2183971357752685,
+        "mean_calls": 1.2013219498760672,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2601267089
+      },
+      {
+        "tau": 0.45,
+        "n_questions": 3631,
+        "mean_saving_ms": 454.144863673919,
+        "misfire_rate": 0.16331589093913523,
+        "net_negative_rate": 0.20077113742770586,
+        "mean_calls": 1.1633158909391352,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2343088277
+      },
+      {
+        "tau": 0.5,
+        "n_questions": 3631,
+        "mean_saving_ms": 456.2746718075828,
+        "misfire_rate": 0.12944092536491325,
+        "net_negative_rate": 0.20104654365188654,
+        "mean_calls": 1.1294409253649131,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2441369693
+      },
+      {
+        "tau": 0.55,
+        "n_questions": 3631,
+        "mean_saving_ms": 446.9843018452217,
+        "misfire_rate": 0.11098870834480859,
+        "net_negative_rate": 0.21343982374001652,
+        "mean_calls": 1.1109887083448087,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2593219104
+      },
+      {
+        "tau": 0.6,
+        "n_questions": 3631,
+        "mean_saving_ms": 441.3292940420454,
+        "misfire_rate": 0.08702836684109061,
+        "net_negative_rate": 0.22335444781052052,
+        "mean_calls": 1.0870283668410905,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2426023805
+      },
+      {
+        "tau": 0.65,
+        "n_questions": 3631,
+        "mean_saving_ms": 426.89800789497843,
+        "misfire_rate": 0.06554668135499862,
+        "net_negative_rate": 0.24759019553841916,
+        "mean_calls": 1.0655466813549985,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.233930521
+      },
+      {
+        "tau": 0.7,
+        "n_questions": 3631,
+        "mean_saving_ms": 404.3330579271091,
+        "misfire_rate": 0.05039933902506197,
+        "net_negative_rate": 0.28779950426879647,
+        "mean_calls": 1.0503993390250619,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.221023904
+      },
+      {
+        "tau": 0.75,
+        "n_questions": 3631,
+        "mean_saving_ms": 374.25869824658037,
+        "misfire_rate": 0.034976590470944646,
+        "net_negative_rate": 0.3329661250344258,
+        "mean_calls": 1.0349765904709447,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2097002654
+      },
+      {
+        "tau": 0.8,
+        "n_questions": 3631,
+        "mean_saving_ms": 334.93068943358116,
+        "misfire_rate": 0.02506196640044065,
+        "net_negative_rate": 0.4051225557697604,
+        "mean_calls": 1.0250619664004406,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.1934251528
+      },
+      {
+        "tau": 0.85,
+        "n_questions": 3631,
+        "mean_saving_ms": 291.0125768842376,
+        "misfire_rate": 0.02038006058936932,
+        "net_negative_rate": 0.4803084549710823,
+        "mean_calls": 1.0203800605893694,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.1715161475
+      },
+      {
+        "tau": 0.9,
+        "n_questions": 3631,
+        "mean_saving_ms": 228.58716606995318,
+        "misfire_rate": 0.012117873863949325,
+        "net_negative_rate": 0.5935004131093363,
+        "mean_calls": 1.0121178738639494,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.1109753679
+      },
+      {
+        "tau": 0.95,
+        "n_questions": 3631,
+        "mean_saving_ms": 148.0583861195263,
+        "misfire_rate": 0.004406499586890664,
+        "net_negative_rate": 0.7314789314238502,
+        "mean_calls": 1.0044064995868907,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.0418657297
+      }
+    ],
+    "gbdt": [
+      {
+        "tau": 0.05,
+        "n_questions": 3631,
+        "mean_saving_ms": 177.28816671256772,
+        "misfire_rate": 0.6730928118975489,
+        "net_negative_rate": 0.6730928118975489,
+        "mean_calls": 1.673092811897549,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 1.0
+      },
+      {
+        "tau": 0.1,
+        "n_questions": 3631,
+        "mean_saving_ms": 177.28816671256772,
+        "misfire_rate": 0.6730928118975489,
+        "net_negative_rate": 0.6730928118975489,
+        "mean_calls": 1.673092811897549,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 1.0
+      },
+      {
+        "tau": 0.15,
+        "n_questions": 3631,
+        "mean_saving_ms": 177.28816671256772,
+        "misfire_rate": 0.6730928118975489,
+        "net_negative_rate": 0.6730928118975489,
+        "mean_calls": 1.673092811897549,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 1.0
+      },
+      {
+        "tau": 0.2,
+        "n_questions": 3631,
+        "mean_saving_ms": 177.28816671256772,
+        "misfire_rate": 0.6730928118975489,
+        "net_negative_rate": 0.6730928118975489,
+        "mean_calls": 1.673092811897549,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 1.0
+      },
+      {
+        "tau": 0.25,
+        "n_questions": 3631,
+        "mean_saving_ms": 225.8698246580373,
+        "misfire_rate": 0.592123381988433,
+        "net_negative_rate": 0.592123381988433,
+        "mean_calls": 1.5921233819884328,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2588469346
+      },
+      {
+        "tau": 0.3,
+        "n_questions": 3631,
+        "mean_saving_ms": 235.94969246304967,
+        "misfire_rate": 0.5753236023134123,
+        "net_negative_rate": 0.5753236023134123,
+        "mean_calls": 1.5753236023134123,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2891616936
+      },
+      {
+        "tau": 0.35,
+        "n_questions": 3631,
+        "mean_saving_ms": 252.14357844487287,
+        "misfire_rate": 0.5483337923437069,
+        "net_negative_rate": 0.5483337923437069,
+        "mean_calls": 1.548333792343707,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.303727375
+      },
+      {
+        "tau": 0.4,
+        "n_questions": 3631,
+        "mean_saving_ms": 292.4630496649224,
+        "misfire_rate": 0.48113467364362433,
+        "net_negative_rate": 0.48113467364362433,
+        "mean_calls": 1.4811346736436244,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.3190758661
+      },
+      {
+        "tau": 0.45,
+        "n_questions": 3631,
+        "mean_saving_ms": 301.0740842743046,
+        "misfire_rate": 0.466538143762049,
+        "net_negative_rate": 0.466538143762049,
+        "mean_calls": 1.466538143762049,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.3201897104
+      },
+      {
+        "tau": 0.5,
+        "n_questions": 3631,
+        "mean_saving_ms": 310.07068759753975,
+        "misfire_rate": 0.45139080143211235,
+        "net_negative_rate": 0.451666207656293,
+        "mean_calls": 1.4513908014321124,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.3231327869
+      },
+      {
+        "tau": 0.55,
+        "n_questions": 3631,
+        "mean_saving_ms": 333.38841457816943,
+        "misfire_rate": 0.41200771137427705,
+        "net_negative_rate": 0.41283393004681906,
+        "mean_calls": 1.412007711374277,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.3175839593
+      },
+      {
+        "tau": 0.6,
+        "n_questions": 3631,
+        "mean_saving_ms": 374.97475442945006,
+        "misfire_rate": 0.3417791242082071,
+        "net_negative_rate": 0.34343156155329113,
+        "mean_calls": 1.341779124208207,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2846421873
+      },
+      {
+        "tau": 0.65,
+        "n_questions": 3631,
+        "mean_saving_ms": 394.76728174056734,
+        "misfire_rate": 0.3076287524098045,
+        "net_negative_rate": 0.31010740842743045,
+        "mean_calls": 1.3076287524098045,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2969018925
+      },
+      {
+        "tau": 0.7,
+        "n_questions": 3631,
+        "mean_saving_ms": 413.7886716239787,
+        "misfire_rate": 0.2737537868355825,
+        "net_negative_rate": 0.2778848801982925,
+        "mean_calls": 1.2737537868355824,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2829915449
+      },
+      {
+        "tau": 0.75,
+        "n_questions": 3631,
+        "mean_saving_ms": 437.80409437253286,
+        "misfire_rate": 0.22913797851831452,
+        "net_negative_rate": 0.2382263839162765,
+        "mean_calls": 1.2291379785183145,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2746992759
+      },
+      {
+        "tau": 0.8,
+        "n_questions": 3631,
+        "mean_saving_ms": 461.58083172679704,
+        "misfire_rate": 0.17791242082071054,
+        "net_negative_rate": 0.2004957312035252,
+        "mean_calls": 1.1779124208207106,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2756888533
+      },
+      {
+        "tau": 0.85,
+        "n_questions": 3631,
+        "mean_saving_ms": 467.6764894886624,
+        "misfire_rate": 0.12916551914073257,
+        "net_negative_rate": 0.1823189204076012,
+        "mean_calls": 1.1291655191407326,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2700526046
+      },
+      {
+        "tau": 0.9,
+        "n_questions": 3631,
+        "mean_saving_ms": 435.2336362801799,
+        "misfire_rate": 0.0828972734783806,
+        "net_negative_rate": 0.23629854034701184,
+        "mean_calls": 1.0828972734783806,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2833707641
+      },
+      {
+        "tau": 0.95,
+        "n_questions": 3631,
+        "mean_saving_ms": 334.4716790599468,
+        "misfire_rate": 0.03167171578077665,
+        "net_negative_rate": 0.4122831175984577,
+        "mean_calls": 1.0316717157807767,
+        "median_saving_correct_fires": 600.0,
+        "spearman_fire_vs_tsuf": 0.2940745521
+      }
+    ]
+  },
+  "baseline_frontier": [
+    {
+      "interval": 1,
+      "mean_saving_ms": 581.1438538510971,
+      "misfire_rate": 0.0,
+      "mean_calls": 4.148443954833379
+    },
+    {
+      "interval": 2,
+      "mean_saving_ms": 575.5072064628661,
+      "misfire_rate": 0.0,
+      "mean_calls": 2.3596805287799505
+    },
+    {
+      "interval": 3,
+      "mean_saving_ms": 568.2915633893326,
+      "misfire_rate": 0.0,
+      "mean_calls": 1.7953731754337647
+    },
+    {
+      "interval": 4,
+      "mean_saving_ms": 557.6976039658497,
+      "misfire_rate": 0.0,
+      "mean_calls": 1.5072982649407876
+    }
+  ],
+  "single_fire_frontier": [
+    {
+      "k": 1,
+      "mean_saving_ms": 177.28816671256772,
+      "misfire_rate": 0.6730928118975489,
+      "mean_calls": 1.673092811897549
+    },
+    {
+      "k": 2,
+      "mean_saving_ms": 282.8789130634352,
+      "misfire_rate": 0.497108234646103,
+      "mean_calls": 1.497108234646103
+    },
+    {
+      "k": 3,
+      "mean_saving_ms": 331.130083539888,
+      "misfire_rate": 0.4166896171853484,
+      "mean_calls": 1.4166896171853485
+    },
+    {
+      "k": 4,
+      "mean_saving_ms": 377.56357293674836,
+      "misfire_rate": 0.33930046819058113,
+      "mean_calls": 1.3393004681905811
+    },
+    {
+      "k": 5,
+      "mean_saving_ms": 414.7617736160837,
+      "misfire_rate": 0.2759570366290278,
+      "mean_calls": 1.2759570366290278
+    },
+    {
+      "k": 6,
+      "mean_saving_ms": 443.4407417607638,
+      "misfire_rate": 0.2228036353621592,
+      "mean_calls": 1.2228036353621592
+    },
+    {
+      "k": 8,
+      "mean_saving_ms": 464.3899752134398,
+      "misfire_rate": 0.13605067474524923,
+      "mean_calls": 1.1360506747452492
+    }
+  ],
+  "sc_safety_point": {
+    "tau": 0.5,
+    "n_questions": 4000,
+    "mean_saving_ms": 201.78333333333333,
+    "misfire_rate": 0.437,
+    "net_negative_rate": 0.52225,
+    "mean_calls": 1.437,
+    "median_saving_correct_fires": 600.0,
+    "spearman_fire_vs_tsuf": 0.2637887187
+  },
+  "ablation": {
+    "retrieval_stability": {
+      "dropped": [
+        "top1_stable_streak",
+        "top1_changed"
+      ],
+      "spearman_fire_vs_tsuf": 0.2742233099
+    },
+    "entity": {
+      "dropped": [
+        "named_entity_detected",
+        "words_since_first_ne"
+      ],
+      "spearman_fire_vs_tsuf": 0.2264231754
+    }
+  },
+  "importances": {
+    "logreg_coef": {
+      "top1_stable_streak": -0.12550046962109587,
+      "top1_changed": 0.07801948076985825,
+      "t": 2.6044038322925096,
+      "named_entity_detected": 0.17781398313296012,
+      "words_since_first_ne": 0.35334464399638277,
+      "who": -0.08527710775884494,
+      "what": -0.1906788379481686,
+      "when": -0.07325134963174,
+      "where": -0.030792033542761936,
+      "which": -0.17294307628584193,
+      "why": 0.06361744187151518,
+      "how": -0.043620324129460666,
+      "other": 0.3550774876885171
+    },
+    "gbdt_importance": {
+      "top1_stable_streak": 0.02516712503829563,
+      "top1_changed": 0.02046097262854047,
+      "t": 0.6298136341824068,
+      "named_entity_detected": 0.05588455898016733,
+      "words_since_first_ne": 0.15173776096462185,
+      "who": 0.0019724295677941085,
+      "what": 0.0007872377806046578,
+      "when": 0.00012163498370418126,
+      "where": 0.00021274865620049964,
+      "which": 0.0020550003976332974,
+      "why": 0.00047128365602370256,
+      "how": 9.419817805854199e-05,
+      "other": 0.11122141498594888
+    }
+  }
+}
