@@ -69,10 +69,10 @@ def main():
     with open(args.out, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         w.writeheader(); w.writerows(rows)
+    s = summarize_dual(rows)
     with open(args.summary_out, "w") as f:
         json.dump({"params": {"benchmark": args.benchmark, "split": args.split, "top_k": args.top_k},
-                   "n_questions": len(rows), "dual": summarize_dual(rows)}, f, indent=2)
-    s = summarize_dual(rows)
+                   "n_questions": len(rows), "dual": s}, f, indent=2)
     print(f"clean: {s['clean']}  | string: {s['string']}")
 
 
