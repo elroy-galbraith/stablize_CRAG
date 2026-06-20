@@ -62,3 +62,17 @@ def test_perq_t_suf_pool_is_easier_or_equal():
     tg = global_t_suf("who founded microsoft", {"d_gates"}, g, k=1)
     tp = perq_t_suf("who founded microsoft", {"d_gates"}, g, k=1, n_pool=3)
     assert tp is not None and (tg is None or tp <= tg)
+
+
+def test_summarize_two_arms():
+    from global_corpus import summarize
+    rows = [
+        {"t_suf_global": 4, "phi_suf_global": 0.4, "t_suf_perq": 1, "phi_suf_perq": 0.1},
+        {"t_suf_global": 6, "phi_suf_global": 0.6, "t_suf_perq": 1, "phi_suf_perq": 0.1},
+        {"t_suf_global": None, "phi_suf_global": None, "t_suf_perq": 2, "phi_suf_perq": 0.2},
+    ]
+    s = summarize(rows)
+    assert s["global"]["n"] == 2
+    assert s["global"]["phi_suf_median"] == 0.5
+    assert s["perq"]["n"] == 3
+    assert s["perq"]["t_suf_eq_1_rate"] == round(2 / 3, 4)

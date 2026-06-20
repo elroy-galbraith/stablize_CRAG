@@ -107,3 +107,67 @@ def perq_t_suf(query: str, gold_ids: set, index: "GlobalBM25", k: int, n_pool: i
         if ids & gold_pos:
             return t
     return None
+
+
+def _cell(rows, t_key, phi_key) -> dict:
+    sub = [r for r in rows if r[t_key] is not None]
+    if not sub:
+        return {"n": 0}
+    import statistics as st
+    phi = [r[phi_key] for r in sub]
+    return {"n": len(sub), "phi_suf_mean": round(st.mean(phi), 4),
+            "phi_suf_median": round(st.median(phi), 4),
+            "t_suf_eq_1_rate": round(sum(1 for r in sub if r[t_key] == 1) / len(sub), 4)}
+
+
+def summarize(rows: list) -> dict:
+    return {"global": _cell(rows, "t_suf_global", "phi_suf_global"),
+            "perq": _cell(rows, "t_suf_perq", "phi_suf_perq")}
+
+
+def main():
+    import argparse, csv, json, os
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--k", type=int, default=3)
+    ap.add_argument("--n-pool", type=int, default=100)
+    ap.add_argument("--limit-corpus", type=int, default=None)
+    ap.add_argument("--limit-queries", type=int, default=None)
+    ap.add_argument("--index-dir", default="results/global/nq_bm25")
+    ap.add_argument("--out", default="results/global/nq_tsuf.csv")
+    ap.add_argument("--summary-out", default="results/global/nq_tsuf.summary.json")
+    args = ap.parse_args()
+
+    corpus_ids, corpus_texts, queries, qrels = load_beir_nq(args.limit_corpus)
+    if os.path.isdir(args.index_dir):
+        index = GlobalBM25.load(args.index_dir)
+    else:
+        index = GlobalBM25(); index.build(corpus_ids, corpus_texts)
+        os.makedirs(args.index_dir, exist_ok=True); index.save(args.index_dir)
+
+    rows = []
+    for qid, gold_ids in qrels.items():
+        if qid not in queries:
+            continue
+        q = queries[qid]
+        nwords = max(len(q.split()), 1)
+        tg = global_t_suf(q, gold_ids, index, args.k)
+        tp = perq_t_suf(q, gold_ids, index, args.k, args.n_pool)
+        rows.append({"qid": qid, "n_words": nwords,
+                     "t_suf_global": tg, "phi_suf_global": round(tg / nwords, 4) if tg else None,
+                     "t_suf_perq": tp, "phi_suf_perq": round(tp / nwords, 4) if tp else None})
+        if args.limit_queries and len(rows) >= args.limit_queries:
+            break
+
+    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    with open(args.out, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0].keys())); w.writeheader(); w.writerows(rows)
+    s = summarize(rows)
+    with open(args.summary_out, "w") as f:
+        json.dump({"params": {"k": args.k, "n_pool": args.n_pool,
+                              "limit_corpus": args.limit_corpus, "n_queries": len(rows)},
+                   "dual": s}, f, indent=2)
+    print(f"global: {s['global']}  | perq: {s['perq']}")
+
+
+if __name__ == "__main__":
+    main()
