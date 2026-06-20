@@ -1,3 +1,5 @@
+import pytest
+
 from train_trigger import decode_fire_t, analytic_saving
 
 
@@ -18,6 +20,9 @@ def test_analytic_saving_premature_is_penalized():
     assert analytic_saving(2, t_suf=5, n=10, L=600, delta=3, c_waste=600) == 0.0
     # smaller penalty -> positive
     assert analytic_saving(2, t_suf=5, n=10, L=600, delta=3, c_waste=300) == 300.0
+    # c_waste exceeds H(t_suf): saving goes NET-NEGATIVE
+    # H(t_suf=9): residual = (10-9)/3*1000 = 333.3 -> minus c_waste 600 = -266.7
+    assert analytic_saving(2, t_suf=9, n=10, L=600, delta=3, c_waste=600) == pytest.approx(-266.7, rel=1e-3)
 
 
 def test_analytic_saving_never_fires():

@@ -78,4 +78,4 @@ def analytic_saving(fire_t: Optional[int], t_suf: int, n: int,
         return 0.0
     if fire_t >= t_suf:
         return hidden_latency_ms(fire_t, n, L, delta)
-    return max(0.0, hidden_latency_ms(t_suf, n, L, delta) - c_waste)
+    return hidden_latency_ms(t_suf, n, L, delta) - c_waste
