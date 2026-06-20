@@ -15,8 +15,6 @@ from stabilization import hidden_latency_ms
 FEATURES = ["top1_stable_streak", "top1_changed", "t",
             "named_entity_detected", "words_since_first_ne"]
 QWORD_LEVELS = ["who", "what", "when", "where", "which", "why", "how", "other"]
-_NUMERIC = {"retrieved_gold", "n_words", "t", "top1_stable_streak", "top1_changed",
-            "named_entity_detected", "words_since_first_ne", "label_sc"}
 
 
 def load_features(path: str) -> list[dict]:
