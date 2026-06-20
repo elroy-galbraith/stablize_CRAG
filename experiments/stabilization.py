@@ -30,13 +30,18 @@ class Stab:
     retrieved_gold: bool      # gold appeared in top-k at some prefix
 
 
-def _prefix_sequence(retriever, query: str, top_k: int):
+def prefix_records(query: str, passages: list[str], top_k: int = 3,
+                   make_retriever=BM25) -> tuple[list[tuple[int, set]], int]:
+    """Retrieve over every prefix q[1:t]; return (seq, n) where
+    seq[t-1] = (top1_id, set_of_topk_ids). ([], 0) if query or passages empty."""
     words = query.split()
     n = len(words)
-    # Batched fast path (dense): one encode call for the whole prefix sweep.
+    if not passages or n == 0:
+        return [], 0
+    retriever = make_retriever(passages)
     if hasattr(retriever, "prefix_topk"):
         return retriever.prefix_topk(words, top_k), n
-    seq = []  # list of (top1_id, set_of_topk_ids)
+    seq = []
     for t in range(1, n + 1):
         ranked = retriever.topk(" ".join(words[:t]), k=top_k)
         ids = [i for i, _ in ranked]
@@ -49,10 +54,9 @@ def stabilization(query: str, passages: list[str], gold: set[int], top_k: int = 
     """`make_retriever(passages) -> retriever` selects the retriever condition;
     defaults to BM25. A dense retriever (experiments/dense.DenseRetriever) is a
     duck-typed drop-in. All downstream metrics consume only the prefix sequence."""
-    if not passages or not query.split():
+    seq, n = prefix_records(query, passages, top_k, make_retriever)
+    if not seq:
         return None
-    retriever = make_retriever(passages)
-    seq, n = _prefix_sequence(retriever, query, top_k)
     full_top1 = seq[-1][0]
 
     # t_sc: 1 + (last prefix length whose top-1 differs from the full-query top-1)

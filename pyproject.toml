@@ -17,6 +17,11 @@ dense = ["sentence-transformers>=2.3"]
 # RQ4 inferential statistics (paper Sec. 5.2): experiments/stats.py — Kruskal--Wallis,
 # epsilon^2, Dunn/Holm post-hoc, and the seeded bootstrap CIs behind the by-type figure.
 stats = ["numpy>=1.24", "scipy>=1.10"]
+# Component A classifier trigger (experiments/trigger_features.py, train_trigger.py):
+# scikit-learn models, spaCy NER (run `python -m spacy download en_core_web_sm`), numpy.
+trigger = ["scikit-learn>=1.3", "spacy>=3.7", "numpy>=1.24"]
+# Test runner (no production code depends on it).
+dev = ["pytest>=8.0"]
 # Convenience: everything optional that the current pipeline can use.
 all = ["beautifulsoup4>=4.12", "matplotlib>=3.8", "sentence-transformers>=2.3",
        "numpy>=1.24", "scipy>=1.10"]
@@ -24,6 +29,10 @@ all = ["beautifulsoup4>=4.12", "matplotlib>=3.8", "sentence-transformers>=2.3",
 # NOT YET WIRED (see PROPOSAL.md §5/§7): the RQ4 phi-on-features regression (the
 # explanatory model) would add e.g. statsmodels/scikit-learn. The RQ4 significance
 # tests themselves are wired — see experiments/stats.py under the [stats] extra.
+
+[tool.pytest.ini_options]
+pythonpath = ["experiments"]
+testpaths = ["tests"]
 
 [tool.uv]
 package = false
