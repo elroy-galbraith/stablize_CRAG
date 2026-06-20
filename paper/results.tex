@@ -28,9 +28,14 @@ The two stabilization notions behave very differently (Fig.~\ref{fig:phi}).
 Self-consistency stabilizes \emph{late}: the lexical top-1 keeps changing until,
 on average, $\phi_{\mathrm{sc}}$ reaches mean \phiScMean{} (median \phiScMed{})---
 roughly three-quarters of the way through the query. Sufficiency, in contrast,
-stabilizes \emph{early}: the gold passage enters the top-$k$ at mean
-$\phi_{\mathrm{suf}}=\phiSufMean{}$ and median \phiSufMed{}, bracketed to
-$[\phiSufMean{},\,\phiSufFuzzy{}]$ by a relaxed-grounding arm (\S\ref{sec:robust})---both early. The gap
+stabilizes \emph{earlier}: the gold passage enters the top-$k$ at mean
+$\phi_{\mathrm{suf}}=\phiSufMean{}$ and median \phiSufMed{}. This point estimate is
+sensitive to grounding \emph{precision}, however---short or ubiquitous gold answers
+match many passages and pull it low---and rises to median \phiSufCleanMed{} (mean
+\phiSufClean{}) on specifically-grounded questions (\S\ref{sec:robust}). We therefore
+read $\phi_{\mathrm{suf}}$ as a range whose median spans
+$[\phiSufMed{},\,\phiSufCleanMed{}]$: early-to-moderate rather than uniformly early,
+but in every case settling well before self-consistency does. The gap
 is the central empirical observation of this study: \textbf{the answer-bearing document is
 retrievable from a short prefix long before the query's lexical top-1 settles}.
 For streaming tool use this is the favorable regime---one need not wait for the
@@ -256,6 +261,35 @@ remains latest. We read the early-sufficiency finding as signal that survives a
 $1.5\times$ population expansion, not as an artifact of the strict matcher. (Fuzzy
 grounding is lower-precision, so it if anything biases $\phi_{\mathrm{suf}}$ \emph{down};
 that the estimate barely moves is the reassuring direction.)
+
+\paragraph{Grounding (precision).} The relaxed arm controls \emph{which} questions
+are groundable, but not \emph{how specifically} a question's answer is grounded---a
+distinct bias that, on inspection, dominates the low end of the
+$\phi_{\mathrm{suf}}$ distribution. CRAG's matcher labels a passage gold whenever the
+normalized answer string occurs in it, so a short or page-pervading answer (a year,
+``0''/``1'', a yes/no, or a term the whole page is about) is matched by many passages
+at once; with a gold set that dense, a top-$k$ of size $3$ contains a gold passage
+almost regardless of the query, and $t_{\mathrm{suf}}$ collapses to $1$ for reasons
+unrelated to intent. Indeed $t_{\mathrm{suf}}{=}1$ for \tSufOneAll{} of retrieved-gold
+questions, and their first words are overwhelmingly function words (\emph{what},
+\emph{who}, \emph{which})---which carry no retrieval signal---so the collapse cannot
+be genuine one-word disambiguation. This precision bias is shared by the exact and
+relaxed matchers alike and pulls $\phi_{\mathrm{suf}}$ \emph{down}. To bound it we
+restrict to \emph{specifically}-grounded questions: those whose gold set covers at
+most $5\%$ of the question's passages, so a random top-$3$ would hit gold at most
+$\approx15\%$ of the time. On this subset ($n{=}\nCleanGround{}$) the
+$t_{\mathrm{suf}}{=}1$ share falls from \tSufOneAll{} to \tSufOneClean{} and median
+$\phi_{\mathrm{suf}}$ rises from \phiSufMed{} to \phiSufCleanMed{} (mean
+$\phiSufMean{}\to\phiSufClean{}$); tightening the density cap further moves the
+estimate monotonically toward $\approx0.4$--$0.6$ rather than back toward zero (the
+gold-set-density sweep is reproduced by
+\texttt{experiments/grounding\_precision.py}). We therefore read the
+early-sufficiency finding as \emph{directionally} robust---sufficiency is still
+typically reached before the utterance ends, and well before self-consistency---but
+materially weaker in magnitude than the uncorrected median \phiSufMed{} suggests, and
+we report the precision-corrected range throughout. The grounding-free
+$\phi_{\mathrm{sc}}$, which needs no answer string, is immune to this bias and anchors
+the comparison.
 
 \paragraph{Retriever (top-$k$).}
 Varying the sufficiency top-$k$ shifts absolute values but preserves the
