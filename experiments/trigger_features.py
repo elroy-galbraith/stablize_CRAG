@@ -38,3 +38,34 @@ def char_spans_to_word_offsets(query: str, char_spans: list[tuple[int, int]]) ->
 
 def first_ne_position(offsets: list[int]) -> Optional[int]:
     return min(offsets) if offsets else None
+
+
+_NLP = None
+
+
+def _load_nlp():
+    """Lazily load and cache the spaCy pipeline ([trigger] extra)."""
+    global _NLP
+    if _NLP is None:
+        try:
+            import spacy
+        except ImportError as e:
+            raise ImportError(
+                "spaCy not installed. Install with: uv sync --extra trigger"
+            ) from e
+        try:
+            _NLP = spacy.load("en_core_web_sm", disable=["lemmatizer", "tagger", "parser"])
+        except OSError as e:
+            raise OSError(
+                "spaCy model missing. Run: python -m spacy download en_core_web_sm"
+            ) from e
+    return _NLP
+
+
+def spacy_ner(query: str) -> list[int]:
+    """1-based word offsets of named-entity starts in the full query."""
+    if not query.split():
+        return []
+    doc = _load_nlp()(query)
+    spans = [(ent.start_char, ent.start_char) for ent in doc.ents]
+    return char_spans_to_word_offsets(query, spans)

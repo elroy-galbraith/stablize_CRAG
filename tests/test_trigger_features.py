@@ -23,3 +23,22 @@ def test_char_spans_to_word_offsets():
 def test_first_ne_position():
     assert first_ne_position([4, 5]) == 4
     assert first_ne_position([]) is None
+
+
+import trigger_features as tf
+
+
+def test_spacy_ner_uses_char_span_mapping(monkeypatch):
+    # Stub the spaCy doc.ents so the test needs no model download.
+    class _Ent:
+        def __init__(self, start_char): self.start_char = start_char
+
+    class _Doc:
+        def __init__(self, ents): self.ents = ents
+
+    q = "who founded microsoft corporation"
+    def fake_nlp(text):
+        return _Doc([_Ent(text.index("microsoft"))])
+    monkeypatch.setattr(tf, "_load_nlp", lambda: fake_nlp)
+
+    assert tf.spacy_ner(q) == [3]  # "microsoft" is the 3rd word
