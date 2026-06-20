@@ -91,6 +91,34 @@ def fixed_interval_eval(t_suf: int, n: int, interval: int) -> tuple[Optional[int
     return None, calls
 
 
+def fixed_single_fire_eval(t_suf: int, n: int, k: int) -> tuple[int, int]:
+    """Fire exactly once at word min(k, n). calls = 1 + 1{premature}."""
+    fire = min(k, n)
+    premature = fire < t_suf
+    return fire, 1 + (1 if premature else 0)
+
+
+def single_fire_frontier(questions: dict, target: str, ks, L, delta, c_waste) -> list[dict]:
+    out = []
+    for k in ks:
+        savings, premature, calls = [], [], []
+        for qr in questions.values():
+            target_t = qr[0]["t_suf"] if target == "suf" else qr[0]["t_sc"]
+            if target_t is None:
+                continue
+            nw = qr[0]["n_words"]
+            ft, c = fixed_single_fire_eval(target_t, nw, k)
+            savings.append(analytic_saving(ft, target_t, nw, L, delta, c_waste))
+            premature.append(1 if ft < target_t else 0)
+            calls.append(c)
+        m = len(savings)
+        out.append({"k": k,
+                    "mean_saving_ms": sum(savings) / m if m else 0.0,
+                    "misfire_rate": sum(premature) / m if m else 0.0,
+                    "mean_calls": sum(calls) / m if m else 0.0})
+    return out
+
+
 def group_by_question(rows: list[dict]) -> dict:
     out = {}
     for r in rows:
@@ -232,6 +260,7 @@ def main():
                        for tau in taus]
                 for name, m in models.items()}
     baseline = baseline_frontier(test_q, "suf", [1, 2, 3, 4], args.L, args.delta, args.c_waste)
+    single_fire = single_fire_frontier(test_q, "suf", [1, 2, 3, 4, 5, 6, 8], args.L, args.delta, args.c_waste)
     abl = ablation(train_rows, test_q, args.tau, args.L, args.delta, args.c_waste)
     sc_point = evaluate(test_q, models["logreg"], args.tau, "sc", args.L, args.delta, args.c_waste)
 
@@ -247,7 +276,7 @@ def main():
         "operating_point": {name: evaluate(test_q, m, args.tau, "suf",
                                            args.L, args.delta, args.c_waste)
                             for name, m in models.items()},
-        "frontier": frontier, "baseline_frontier": baseline,
+        "frontier": frontier, "baseline_frontier": baseline, "single_fire_frontier": single_fire,
         "sc_safety_point": sc_point, "ablation": abl, "importances": importances,
     }
     with open(args.summary_json, "w") as f:

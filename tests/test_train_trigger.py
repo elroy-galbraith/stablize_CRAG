@@ -1,6 +1,6 @@
 import pytest
 
-from train_trigger import decode_fire_t, analytic_saving, fixed_interval_eval, spearman
+from train_trigger import decode_fire_t, analytic_saving, fixed_interval_eval, spearman, fixed_single_fire_eval
 
 
 def test_decode_fire_t():
@@ -39,3 +39,12 @@ def test_fixed_interval_eval():
 def test_spearman_monotonic():
     assert spearman([1, 2, 3, 4], [10, 20, 30, 40]) == 1.0
     assert spearman([1, 2, 3, 4], [40, 30, 20, 10]) == -1.0
+
+
+def test_fixed_single_fire_eval():
+    # fire once at word k=6; t_suf=5 -> 6>=5 correct, 1 call
+    assert fixed_single_fire_eval(t_suf=5, n=10, k=6) == (6, 1)
+    # k=3 < t_suf=5 -> premature, fire clamped to 3, 2 calls (1 + reflector)
+    assert fixed_single_fire_eval(t_suf=5, n=10, k=3) == (3, 2)
+    # k beyond query length clamps to n
+    assert fixed_single_fire_eval(t_suf=5, n=4, k=8) == (4, 2)  # 4<5 premature
