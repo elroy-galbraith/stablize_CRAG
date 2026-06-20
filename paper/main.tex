@@ -29,6 +29,15 @@ Characterizing Tool-Intent Stabilization in Streaming Retrieval-Augmented Genera
 \newcommand{\phiScMed}{0.73}
 \newcommand{\phiSufMean}{0.26}
 \newcommand{\phiSufMed}{0.14}
+% Grounding-PRECISION correction (experiments/grounding_precision.py): restrict to
+% questions whose gold answer grounds specifically (gold set <= 5% of passages), so a
+% random top-3 hits gold <= ~15% of the time. Bounds the over-grounding of short/
+% ubiquitous answers that the exact/fuzzy arms share. n=58.
+\newcommand{\phiSufClean}{0.44}      % phi_suf mean, precisely-grounded
+\newcommand{\phiSufCleanMed}{0.35}   % phi_suf median, precisely-grounded
+\newcommand{\nCleanGround}{58}       % precisely-grounded subset size
+\newcommand{\tSufOneAll}{49\%}       % t_suf==1 share, all retrieved-gold
+\newcommand{\tSufOneClean}{14\%}     % t_suf==1 share, precisely-grounded
 \newcommand{\volMean}{0.52}
 \newcommand{\volSharePct}{20.9\%}
 % RQ2 (central cell L=600, delta=3, theta=0.8)
@@ -89,10 +98,14 @@ stabilization is distributed across queries; (ii) derive a model-agnostic bound 
 on the share of tool latency hideable behind the remaining input, given tool
 latency $L$ and input cadence $\delta$; (iii) validate it against a working
 streaming pipeline; and (iv) ask which query properties predict early versus late
-stabilization. Stabilization is typically early: at a realistic operating point a
-\streamPct{} streamable fraction of the benchmark admits latency hiding, and $H$
-acts as a conservative aggregate floor that realized savings meet or exceed---though
-it does not predict savings query by query. Question type yields a statistically
+stabilization. Stabilization is often early---though its magnitude is sensitive to
+how strictly the gold answer is grounded into passages (\S\ref{sec:robust}): on
+precisely-grounded questions median $\phi_{\mathrm{suf}}$ is $\phiSufCleanMed{}$
+rather than the \phiSufMed{} of the full retrieved-gold slice, so we report it as a
+range, not a point. At a realistic operating point a \streamPct{} streamable
+fraction of the benchmark admits latency hiding, and $H$ acts as a conservative
+aggregate floor that realized savings meet or exceed---though it does not predict
+savings query by query. Question type yields a statistically
 significant but small early/late split. The study needs no model training and runs
 on commodity CPU hardware; a dense-retriever replication confirms the
 early-stabilization effect is not a BM25 lexical artifact.
@@ -315,17 +328,26 @@ retrieval.
 \section{Conclusion}
 Tool-intent stabilization is a query-intrinsic, model-agnostic quantity that
 bounds when streaming tool use can help and by how much. On CRAG, sufficiency
-stabilizes early on the groundable, retrievable subset (mean
-$\phi_{\mathrm{suf}}$ bracketed to $[\phiSufMean{},\,\phiSufFuzzy{}]$ by exact and
-relaxed grounding); question type gives a significant but coarse
+stabilizes early on the groundable, retrievable subset---though \emph{how} early
+depends on grounding precision: median $\phi_{\mathrm{suf}}$ ranges from \phiSufMed{}
+on the full retrieved-gold slice to \phiSufCleanMed{} once we restrict to
+specifically-grounded answers (\S\ref{sec:robust}), so we report it as a range;
+question type gives a significant but coarse
 early/late split (Kruskal--Wallis $p=\kwAllP{}$, $\varepsilon^2{=}\epsSq{}$); and $H$
 is a conservative aggregate floor that realized savings meet or exceed, yielding a
 \streamPct{} streamable fraction over the full benchmark.
 Two limitations temper these claims, and we probed both rather than merely noting
 them. First, the sufficiency results are conditional on a favorable \nRetrPct{}
-slice; the relaxed-grounding arm brackets the population effect to under $0.02$ in
-$\phi_{\mathrm{suf}}$ (\S\ref{sec:robust}), bounding the finding as signal rather
-than artifact---though a fuller recovery (dense or learned grounding) remains open.
+slice \emph{and} on string-grounding precision. These are distinct biases: the
+relaxed-grounding arm bounds the \emph{population}-selection effect to under $0.02$
+in $\phi_{\mathrm{suf}}$, but a separate \emph{precision} effect---short or
+ubiquitous gold answers that match many passages, so a top-$k$ hits one almost
+unconditionally---pulls the estimate the other way. Controlling for it (restricting
+to answers that ground to $\le5\%$ of a question's passages) moves median
+$\phi_{\mathrm{suf}}$ from \phiSufMed{} to \phiSufCleanMed{} and the $t_{\mathrm{suf}}{=}1$
+share from \tSufOneAll{} to \tSufOneClean{} (\S\ref{sec:robust}). We therefore report
+$\phi_{\mathrm{suf}}$ as a range and lean on the grounding-free $\phi_{\mathrm{sc}}$;
+a fuller recovery (dense or learned grounding) remains open.
 Second, our system validation establishes conservativeness in aggregate but
 \emph{not} per-query prediction: at $L{=}1000$\,ms, realized savings do not track
 $H$ (Spearman $\rho{=}\rhoLk{}$), because a constant query-generation overlap
