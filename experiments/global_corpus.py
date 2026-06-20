@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Iterable, Optional
 
+from stabilization import prefix_records
+
 
 def corpus_row_to_text(row: dict) -> str:
     title = (row.get("title") or "").strip()
@@ -82,3 +84,26 @@ class GlobalBM25:
         with open(os.path.join(path, "id_to_text.json")) as f:
             g.id_to_text = json.load(f)
         return g
+
+
+def global_t_suf(query: str, gold_ids: set, index: "GlobalBM25", k: int) -> Optional[int]:
+    words = query.split()
+    for t in range(1, len(words) + 1):
+        hits = set(index.topk_ids(" ".join(words[:t]), k))
+        if hits & gold_ids:
+            return t
+    return None
+
+
+def perq_t_suf(query: str, gold_ids: set, index: "GlobalBM25", k: int, n_pool: int) -> Optional[int]:
+    # Pool = top-N(full query) U gold, materialized as passage texts.
+    pool_ids = list(dict.fromkeys(index.topk_ids(query, n_pool) + list(gold_ids)))
+    pool_texts = [index.id_to_text.get(i, "") for i in pool_ids]
+    gold_pos = {i for i, did in enumerate(pool_ids) if did in gold_ids}
+    seq, n = prefix_records(query, pool_texts, top_k=k)
+    if not seq:
+        return None
+    for t, (_, ids) in enumerate(seq, start=1):
+        if ids & gold_pos:
+            return t
+    return None
