@@ -292,16 +292,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--k", type=int, default=3)
     ap.add_argument("--n-pool", type=int, default=100)
-    ap.add_argument("--limit-corpus", type=int, default=None)
     ap.add_argument("--limit-queries", type=int, default=None)
-    ap.add_argument("--index-dir", default="results/global/nq_bm25")
+    ap.add_argument("--index-dir", default=None,
+                    help="optional BM25 index cache; reused only if its corpus size matches")
     ap.add_argument("--out", default="results/global/nq_tsuf.csv")
     ap.add_argument("--summary-out", default="results/global/nq_tsuf.summary.json")
     ap.add_argument("--dataset", default="nq",
                     help="BEIR dataset name: nq|fiqa|hotpotqa|scifact")
     ap.add_argument("--retriever", choices=["bm25", "dense"], default="bm25")
     ap.add_argument("--n-distractors", type=int, default=None,
-                    help="reservoir-sample this many non-gold passages (None = keep all)")
+                    help="corpus = all gold + this many non-gold passages (None = full corpus)")
     args = ap.parse_args()
 
     corpus_ids, corpus_texts, queries, qrels = load_beir(args.dataset, args.n_distractors)
@@ -310,11 +310,15 @@ def main():
         index = GlobalDense()
         index.build(corpus_ids, corpus_texts)
     else:
-        if os.path.isdir(args.index_dir):
+        # reuse a cached index ONLY if it matches this corpus (guards stale cross-dataset reuse)
+        if args.index_dir and os.path.isdir(args.index_dir):
             index = GlobalBM25.load(args.index_dir)
+            if len(index.ids) != len(corpus_ids):
+                index = GlobalBM25(); index.build(corpus_ids, corpus_texts)
         else:
             index = GlobalBM25(); index.build(corpus_ids, corpus_texts)
-            os.makedirs(args.index_dir, exist_ok=True); index.save(args.index_dir)
+            if args.index_dir:
+                os.makedirs(args.index_dir, exist_ok=True); index.save(args.index_dir)
 
     rows = []
     for qid, gold_ids in qrels.items():
