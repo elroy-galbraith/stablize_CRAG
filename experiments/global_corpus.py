@@ -50,6 +50,11 @@ class GlobalBM25:
         self.id_to_text: dict[str, str] = {}
 
     def build(self, corpus_ids, corpus_texts):
+        # NOTE: the global arm scores with bm25s (Lucene-style BM25); the per-question
+        # arm (perq_t_suf) scores with the vendored pure-Python BM25 via prefix_records.
+        # Both use k1=1.5/b=0.75, but the engines differ slightly, so the global-vs-perq
+        # gap is corpus-structure-DOMINATED, not purely so. The headline early-vs-late
+        # effect (phi_suf ~0.1 per-question vs ~0.75 global) dwarfs any scoring nuance.
         import bm25s
         self.ids = list(corpus_ids)
         self.id_to_text = dict(zip(corpus_ids, corpus_texts))
