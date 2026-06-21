@@ -1,0 +1,24 @@
+{
+  "params": {
+    "k": 3,
+    "n_pool": 100,
+    "n_queries": 3452,
+    "dataset": "nq",
+    "retriever": "bm25",
+    "n_distractors": 10000
+  },
+  "dual": {
+    "global": {
+      "n": 2995,
+      "phi_suf_mean": 0.614,
+      "phi_suf_median": 0.625,
+      "t_suf_eq_1_rate": 0.0294
+    },
+    "perq": {
+      "n": 2826,
+      "phi_suf_mean": 0.6041,
+      "phi_suf_median": 0.625,
+      "t_suf_eq_1_rate": 0.0495
+    }
+  }
+}
