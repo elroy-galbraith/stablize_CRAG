@@ -1,4 +1,10 @@
-from global_corpus import corpus_row_to_text, qrels_to_dict, GlobalBM25, global_t_suf, perq_t_suf
+import numpy as np
+
+from global_corpus import (
+    corpus_row_to_text, qrels_to_dict, GlobalBM25, GlobalDense,
+    global_t_suf, perq_t_suf,
+    _build_corpus, _beir_repos,
+)
 
 
 def test_corpus_row_to_text():
@@ -76,3 +82,126 @@ def test_summarize_two_arms():
     assert s["global"]["phi_suf_median"] == 0.5
     assert s["perq"]["n"] == 3
     assert s["perq"]["t_suf_eq_1_rate"] == round(2 / 3, 4)
+
+
+# ---------------------------------------------------------------------------
+# _build_corpus tests
+# ---------------------------------------------------------------------------
+
+def _fake_corpus():
+    """6-row fake corpus: g1, g2 (gold) + d1..d4 (non-gold)."""
+    return [
+        {"_id": "g1", "title": "Gold One", "text": "alpha"},
+        {"_id": "g2", "title": "Gold Two", "text": "beta"},
+        {"_id": "d1", "title": "Dist One", "text": "gamma"},
+        {"_id": "d2", "title": "Dist Two", "text": "delta"},
+        {"_id": "d3", "title": "Dist Three", "text": "epsilon"},
+        {"_id": "d4", "title": "Dist Four", "text": "zeta"},
+    ]
+
+
+def test_build_corpus_gold_always_present():
+    ids, texts = _build_corpus(_fake_corpus(), {"g1", "g2"}, n_distractors=2, seed=0)
+    assert "g1" in ids
+    assert "g2" in ids
+
+
+def test_build_corpus_distractor_count():
+    ids, texts = _build_corpus(_fake_corpus(), {"g1", "g2"}, n_distractors=2, seed=0)
+    assert len(ids) == 4  # 2 gold + 2 distractors
+    assert len(texts) == 4
+
+
+def test_build_corpus_only_distractors_from_non_gold():
+    ids, texts = _build_corpus(_fake_corpus(), {"g1", "g2"}, n_distractors=2, seed=0)
+    non_gold = [i for i in ids if i not in {"g1", "g2"}]
+    assert len(non_gold) == 2
+    assert all(i in {"d1", "d2", "d3", "d4"} for i in non_gold)
+
+
+def test_build_corpus_deterministic():
+    ids_a, _ = _build_corpus(_fake_corpus(), {"g1", "g2"}, n_distractors=2, seed=0)
+    ids_b, _ = _build_corpus(_fake_corpus(), {"g1", "g2"}, n_distractors=2, seed=0)
+    assert ids_a == ids_b
+
+
+def test_build_corpus_keep_all_when_none():
+    ids, texts = _build_corpus(_fake_corpus(), {"g1", "g2"}, n_distractors=None, seed=0)
+    assert set(ids) == {"g1", "g2", "d1", "d2", "d3", "d4"}
+    assert len(ids) == 6
+
+
+def test_build_corpus_texts_match_ids():
+    """corpus_row_to_text should be applied consistently."""
+    ids, texts = _build_corpus(_fake_corpus(), {"g1"}, n_distractors=None, seed=0)
+    idx = ids.index("g1")
+    assert texts[idx] == "Gold One alpha"
+
+
+# ---------------------------------------------------------------------------
+# _beir_repos tests
+# ---------------------------------------------------------------------------
+
+def test_beir_repos_nq():
+    assert _beir_repos("nq") == ("BeIR/nq", "BeIR/nq-qrels", "test")
+
+
+def test_beir_repos_fiqa():
+    assert _beir_repos("fiqa") == ("BeIR/fiqa", "BeIR/fiqa-qrels", "test")
+
+
+def test_beir_repos_hotpotqa():
+    assert _beir_repos("hotpotqa") == ("BeIR/hotpotqa", "BeIR/hotpotqa-qrels", "test")
+
+
+def test_beir_repos_scifact():
+    assert _beir_repos("scifact") == ("BeIR/scifact", "BeIR/scifact-qrels", "test")
+
+
+def test_beir_repos_unknown():
+    import pytest
+    with pytest.raises(KeyError):
+        _beir_repos("unknown_dataset")
+
+
+# ---------------------------------------------------------------------------
+# GlobalDense tests (no model download — inject fake embeddings)
+# ---------------------------------------------------------------------------
+
+class _FakeModel:
+    """Minimal SentenceTransformer stub."""
+
+    def __init__(self, response: np.ndarray):
+        self._response = response  # shape (1, d)
+
+    def encode(self, sentences, normalize_embeddings=True, convert_to_numpy=True, **kw):
+        return self._response
+
+
+def test_global_dense_topk_ids_ranking():
+    g = GlobalDense()
+    g.ids = ["a", "b", "c"]
+    # qv=[1,0] → sims: a=1.0, b=0.0, c=0.9 → top-2 = ["a","c"]
+    g._emb = np.array([[1, 0], [0, 1], [0.9, 0.1]], dtype=float)
+    g._model = _FakeModel(np.array([[1.0, 0.0]]))
+    result = g.topk_ids("any query", 2)
+    assert result == ["a", "c"]
+
+
+def test_global_dense_topk_ids_empty_query():
+    g = GlobalDense()
+    g.ids = ["a", "b"]
+    g._emb = np.array([[1, 0], [0, 1]], dtype=float)
+    g._model = _FakeModel(np.array([[1.0, 0.0]]))
+    assert g.topk_ids("", 2) == []
+    assert g.topk_ids("   ", 2) == []
+
+
+def test_global_dense_topk_ids_k_clipped():
+    """k larger than corpus size should not crash."""
+    g = GlobalDense()
+    g.ids = ["a"]
+    g._emb = np.array([[1, 0]], dtype=float)
+    g._model = _FakeModel(np.array([[1.0, 0.0]]))
+    result = g.topk_ids("hello", 10)
+    assert result == ["a"]
