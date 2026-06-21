@@ -1,0 +1,24 @@
+{
+  "params": {
+    "k": 3,
+    "n_pool": 100,
+    "n_queries": 648,
+    "dataset": "fiqa",
+    "retriever": "dense",
+    "n_distractors": 10000
+  },
+  "dual": {
+    "global": {
+      "n": 481,
+      "phi_suf_mean": 0.6204,
+      "phi_suf_median": 0.625,
+      "t_suf_eq_1_rate": 0.0146
+    },
+    "perq": {
+      "n": 421,
+      "phi_suf_mean": 0.4294,
+      "phi_suf_median": 0.3571,
+      "t_suf_eq_1_rate": 0.2304
+    }
+  }
+}

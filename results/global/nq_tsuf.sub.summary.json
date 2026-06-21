@@ -1,0 +1,22 @@
+{
+  "params": {
+    "k": 3,
+    "n_pool": 100,
+    "limit_corpus": 50000,
+    "n_queries": 500
+  },
+  "dual": {
+    "global": {
+      "n": 267,
+      "phi_suf_mean": 0.6729,
+      "phi_suf_median": 0.7,
+      "t_suf_eq_1_rate": 0.0225
+    },
+    "perq": {
+      "n": 206,
+      "phi_suf_mean": 0.6341,
+      "phi_suf_median": 0.6667,
+      "t_suf_eq_1_rate": 0.0825
+    }
+  }
+}

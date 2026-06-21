@@ -26,3 +26,4 @@ paper/*.out
 paper/*.fdb_latexmk
 paper/*.fls
 paper/*.synctex.gz
+results/global/nq_bm25/
