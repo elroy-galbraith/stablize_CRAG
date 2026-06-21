@@ -22,7 +22,9 @@ def qrels_to_dict(rows: Iterable[dict]) -> dict:
     out: dict[str, set] = {}
     for r in rows:
         if int(r["score"]) > 0:
-            out.setdefault(r["query-id"], set()).add(r["corpus-id"])
+            # BEIR datasets vary: some store ids as int (fiqa), some as str (nq).
+            # Coerce to str so qrels ids match the str _id of queries/corpus.
+            out.setdefault(str(r["query-id"]), set()).add(str(r["corpus-id"]))
     return out
 
 
@@ -53,7 +55,7 @@ def _build_corpus(
     seen_count = 0  # total non-gold rows seen (for reservoir)
 
     for row in corpus_iter:
-        rid = row["_id"]
+        rid = str(row["_id"])
         text = corpus_row_to_text(row)
         if rid in gold_ids:
             gold_ids_list.append(rid)
@@ -114,7 +116,7 @@ def load_beir(
     corpus_repo, qrels_repo, qrels_split = _beir_repos(dataset)
 
     queries = {
-        row["_id"]: row["text"]
+        str(row["_id"]): row["text"]
         for row in load_dataset(corpus_repo, "queries", split="queries", streaming=True)
     }
     qrels = qrels_to_dict(
@@ -339,8 +341,7 @@ def main():
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys())); w.writeheader(); w.writerows(rows)
     s = summarize(rows)
     with open(args.summary_out, "w") as f:
-        json.dump({"params": {"k": args.k, "n_pool": args.n_pool,
-                              "limit_corpus": args.limit_corpus, "n_queries": len(rows),
+        json.dump({"params": {"k": args.k, "n_pool": args.n_pool, "n_queries": len(rows),
                               "dataset": args.dataset, "retriever": args.retriever,
                               "n_distractors": args.n_distractors},
                    "dual": s}, f, indent=2)
