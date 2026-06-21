@@ -230,7 +230,7 @@ class GlobalDense:
             list(corpus_texts),
             normalize_embeddings=True,
             convert_to_numpy=True,
-            show_progress_bar=False,
+            show_progress_bar=True,
             batch_size=256,
         )
 
