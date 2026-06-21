@@ -21,7 +21,9 @@ def corpus_row_to_text(row: dict) -> str:
 def qrels_to_dict(rows: Iterable[dict]) -> dict:
     out: dict[str, set] = {}
     for r in rows:
-        if int(r["score"]) > 0:
+        # scores may be int (fiqa) or float-strings ('1.0') across BEIR datasets;
+        # float() parses both, int('1.0') would raise.
+        if float(r["score"]) > 0:
             # BEIR datasets vary: some store ids as int (fiqa), some as str (nq).
             # Coerce to str so qrels ids match the str _id of queries/corpus.
             out.setdefault(str(r["query-id"]), set()).add(str(r["corpus-id"]))
@@ -177,6 +179,24 @@ class GlobalBM25:
         res, _ = self._bm25.retrieve(qtoks, k=k, show_progress=False)
         return [self.ids[pos] for pos in res[0]]
 
+    def topk_ids_batch(self, queries: list, k: int) -> list:
+        """Retrieve top-k doc-ids for many queries in one bm25s batch call.
+
+        Empty/whitespace queries map to ``[]`` without hitting the engine.
+        """
+        import bm25s
+        out = [[] for _ in queries]
+        keep = [(i, q) for i, q in enumerate(queries) if q.split()]
+        if not keep:
+            return out
+        idxs, texts = zip(*keep)
+        qtoks = bm25s.tokenize(list(texts), stopwords="en", show_progress=False)
+        k = min(k, len(self.ids))
+        res, _ = self._bm25.retrieve(qtoks, k=k, show_progress=False)
+        for i, row in zip(idxs, res):
+            out[i] = [self.ids[pos] for pos in row]
+        return out
+
     def save(self, path: str):
         import json, os
         self._bm25.save(path)
@@ -249,12 +269,34 @@ class GlobalDense:
         idx = idx[np.argsort(-sims[idx])]
         return [self.ids[i] for i in idx]
 
+    def topk_ids_batch(self, queries: list, k: int) -> list:
+        """Encode all prefixes in one batch, then top-k each by cosine."""
+        import numpy as np
+        out = [[] for _ in queries]
+        keep = [(i, q) for i, q in enumerate(queries) if q.split()]
+        if not keep:
+            return out
+        idxs, texts = zip(*keep)
+        qvs = self._model.encode(
+            list(texts), normalize_embeddings=True, convert_to_numpy=True,
+        )
+        k = min(k, len(self.ids))
+        sims_all = self._emb @ qvs.T          # (n_docs, n_queries)
+        for col, i in enumerate(idxs):
+            sims = sims_all[:, col]
+            top = np.argpartition(-sims, k - 1)[:k]
+            top = top[np.argsort(-sims[top])]
+            out[i] = [self.ids[j] for j in top]
+        return out
+
 
 def global_t_suf(query: str, gold_ids: set, index: "GlobalBM25", k: int) -> Optional[int]:
     words = query.split()
-    for t in range(1, len(words) + 1):
-        hits = set(index.topk_ids(" ".join(words[:t]), k))
-        if hits & gold_ids:
+    if not words:
+        return None
+    prefixes = [" ".join(words[:t]) for t in range(1, len(words) + 1)]
+    for t, hits in enumerate(index.topk_ids_batch(prefixes, k), start=1):
+        if set(hits) & gold_ids:
             return t
     return None
 
@@ -336,6 +378,9 @@ def main():
         if args.limit_queries and len(rows) >= args.limit_queries:
             break
 
+    if not rows:
+        print("No queries processed (no qrels overlapped the loaded queries).")
+        return
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys())); w.writeheader(); w.writerows(rows)

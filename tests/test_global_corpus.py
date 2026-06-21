@@ -43,6 +43,15 @@ def test_globalbm25_empty_query():
     assert _tiny_index().topk_ids("", k=3) == []
 
 
+def test_globalbm25_batch_matches_single():
+    g = _tiny_index()
+    qs = ["who founded microsoft", "", "capital of france"]
+    batch = g.topk_ids_batch(qs, k=2)
+    assert batch[1] == []                                   # empty query -> []
+    assert batch[0] == g.topk_ids(qs[0], k=2)               # parity with single
+    assert batch[2] == g.topk_ids(qs[2], k=2)
+
+
 def test_globalbm25_id_to_text():
     g = _tiny_index()
     assert g.id_to_text["d_paris"].startswith("paris")
@@ -54,6 +63,8 @@ class _FakeIndex:
         self.id_to_text = id_to_text or {}
     def topk_ids(self, query, k):
         return self._by_t.get(len(query.split()), [])[:k]
+    def topk_ids_batch(self, queries, k):
+        return [self.topk_ids(q, k) for q in queries]
 
 
 def test_global_t_suf_first_prefix_that_surfaces_gold():
@@ -195,6 +206,25 @@ def test_global_dense_topk_ids_empty_query():
     g._model = _FakeModel(np.array([[1.0, 0.0]]))
     assert g.topk_ids("", 2) == []
     assert g.topk_ids("   ", 2) == []
+
+
+class _FakeBatchModel:
+    """Returns one row per input sentence (shape (len(sentences), d))."""
+    def __init__(self, rows: dict):
+        self._rows = rows  # {sentence: vector}
+    def encode(self, sentences, normalize_embeddings=True, convert_to_numpy=True, **kw):
+        return np.array([self._rows[s] for s in sentences], dtype=float)
+
+
+def test_global_dense_batch_ranking():
+    g = GlobalDense()
+    g.ids = ["a", "b", "c"]
+    g._emb = np.array([[1, 0], [0, 1], [0.9, 0.1]], dtype=float)
+    g._model = _FakeBatchModel({"q1": [1.0, 0.0], "q2": [0.0, 1.0]})
+    out = g.topk_ids_batch(["q1", "", "q2"], 2)
+    assert out[0] == ["a", "c"]   # q1 -> a(1.0), c(0.9)
+    assert out[1] == []           # empty query
+    assert out[2] == ["b", "c"]   # q2 -> b(1.0), c(0.1)
 
 
 def test_global_dense_topk_ids_k_clipped():
