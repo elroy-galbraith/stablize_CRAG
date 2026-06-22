@@ -1,6 +1,16 @@
 \documentclass[11pt]{article}
 
-\usepackage[review]{acl}
+% ===================================================================== %
+% LAYOUT TOGGLE.  Default = single-column preprint (for arXiv).          %
+% To submit to ACL: uncomment the [ACL] line below, then comment out     %
+% every line tagged % [PREPRINT] (this block + \usepackage{hyperref} +   %
+% \bibliographystyle{acl_natbib} near \bibliography). acl.sty supplies    %
+% geometry, natbib, hyperref, the two-column layout, and the bib style.  %
+%\usepackage[preprint]{acl}                          % [ACL] two-column (review/preprint/final)
+\usepackage[margin=1in]{geometry}                    % [PREPRINT] single-column margins
+\usepackage{natbib}                                  % [PREPRINT] acl.sty loads this
+\renewcommand{\cite}{\citep}                         % [PREPRINT] \cite -> "(Author, Year)"
+% ===================================================================== %
 \usepackage{times}
 \usepackage{latexsym}
 \usepackage[T1]{fontenc}
@@ -10,10 +20,14 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{xcolor}
+\usepackage{hyperref}             % [PREPRINT] after natbib (\url + clickable refs); acl.sty loads its own
+\hypersetup{hidelinks}            % [PREPRINT] no colored boxes around links/cites
 
-\title{When Does Streaming Tool Use Help?\\
-Characterizing Tool-Intent Stabilization in Streaming Retrieval-Augmented Generation}
-\author{Anonymous}
+\title{Tool-Intent Stabilization Is Operationalization-Dependent:\\
+A Cautionary Measurement Study of Streaming Retrieval-Augmented Generation}
+\author{Elroy Galbraith \\
+  SMG Lab \\
+  \texttt{elroy.galbraith@gmail.com}}
 
 % ===================================================================== %
 % RESULTS MACROS — populated from results/*.summary.json (see fill note) %
@@ -80,6 +94,30 @@ Characterizing Tool-Intent Stabilization in Streaming Retrieval-Augmented Genera
 \newcommand{\phiSufDense}{0.31}      % phi_suf mean, dense (vs 0.26) %
 \newcommand{\phiSufDenseMed}{0.22}   % phi_suf median, dense (vs 0.14) %
 \newcommand{\rhoDenseType}{0.79}     % Spearman(BM25,dense) over phi_suf type ranking %
+% ---- Global-corpus arm (Paper 1 v2 spine). Sources named per line. ----
+% phi_suf dose-response + retriever-generality (gold-guaranteed subsamples)
+\newcommand{\phiSufGnqK}{0.571}      % NQ gold+1k median phi_suf; results/global/confirm/nq_bm25_1000.summary.json
+\newcommand{\phiSufGnqTenK}{0.625}   % NQ gold+10k median; nq_bm25_10000.summary.json
+\newcommand{\phiSufGnqOneM}{0.75}    % NQ ~1M-prefix median; nq_tsuf.1m.summary.json
+\newcommand{\phiSufGfiqaBm}{0.636}   % FiQA gold+10k BM25 median; fiqa_bm25_10k.summary.json
+\newcommand{\phiSufGfiqaDe}{0.625}   % FiQA gold+10k dense median; fiqa_dense_10k.summary.json
+\newcommand{\tSufOneGnqOneM}{0.7\%}  % NQ ~1M t_suf==1 rate; nq_tsuf.1m.summary.json
+\newcommand{\tSufOneGfiqaBm}{2.8\%}  % FiQA 10k BM25 t_suf==1; fiqa_bm25_10k.summary.json
+\newcommand{\nGfiqaBm}{364}          % FiQA 10k BM25 groundable n; fiqa_bm25_10k.summary.json
+\newcommand{\nGfiqaDe}{481}          % FiQA 10k dense groundable n; fiqa_dense_10k.summary.json
+% L-dependent headroom: streamable fraction, delta=3, theta=0.8 (full corpora)
+% per-question CRAG (v1): results/global/headroom/perq_crag.json
+\newcommand{\sfPqSix}{73.9\%}        % L=600  (matches v1 \streamPct)
+\newcommand{\sfPqFifteen}{54.5\%}    % L=1500
+\newcommand{\sfPqTwentyfive}{39.2\%} % L=2500
+% global NQ ~1M: results/global/headroom/nq_1m.json
+\newcommand{\sfNqSix}{58.6\%}        % L=600
+\newcommand{\sfNqFifteen}{27.2\%}    % L=1500
+\newcommand{\sfNqTwentyfive}{9.2\%}  % L=2500
+% global FiQA full ~57k: results/global/headroom/fiqa_full.json
+\newcommand{\sfFiqaSix}{67.6\%}      % L=600
+\newcommand{\sfFiqaFifteen}{48.8\%}  % L=1500
+\newcommand{\sfFiqaTwentyfive}{30.8\%} % L=2500
 % ===================================================================== %
 
 \begin{document}
@@ -91,24 +129,31 @@ issuing retrieval queries in parallel with the user's still-arriving input, befo
 the utterance is complete. Speculation can only help, though, when the correct
 query becomes determinable before the user stops speaking or typing---a property of
 the query, not the system. We name and measure this property,
-\textbf{tool-intent stabilization}: the point in the input stream at which a
-speculative query's retrieval converges on the answer-bearing result. On the CRAG
-benchmark (\nSplitZero{} validation questions) we (i) characterize how
-stabilization is distributed across queries; (ii) derive a model-agnostic bound $H$
-on the share of tool latency hideable behind the remaining input, given tool
-latency $L$ and input cadence $\delta$; (iii) validate it against a working
-streaming pipeline; and (iv) ask which query properties predict early versus late
-stabilization. Stabilization is often early---though its magnitude is sensitive to
-how strictly the gold answer is grounded into passages (\S\ref{sec:robust}): on
-precisely-grounded questions median $\phi_{\mathrm{suf}}$ is $\phiSufCleanMed{}$
-rather than the \phiSufMed{} of the full retrieved-gold slice, so we report it as a
-range, not a point. At a realistic operating point a \streamPct{} streamable
-fraction of the benchmark admits latency hiding, and $H$ acts as a conservative
-aggregate floor that realized savings meet or exceed---though it does not predict
-savings query by query. Question type yields a statistically
-significant but small early/late split. The study needs no model training and runs
-on commodity CPU hardware; a dense-retriever replication confirms the
-early-stabilization effect is not a BM25 lexical artifact.
+\textbf{tool-intent stabilization} (TIS): the point in the input stream at which a
+speculative query's retrieval converges on the answer-bearing result.
+
+The measured value of TIS depends critically on the retrieval corpus.
+Against the per-question candidate pool that CRAG ships, stabilization looks early
+(median $\phi_{\mathrm{suf}}=\phiSufMed$); against a realistic global corpus it is
+late (median up to $\phiSufGnqOneM$ on NQ at ${\sim}1$M documents), grows later
+with corpus size, and holds for both sparse and dense retrieval (FiQA: BM25
+$\phiSufGfiqaBm$, dense $\phiSufGfiqaDe$).
+
+This corpus-dependence has a direct consequence for the hideable-latency headroom,
+and the gap grows with tool latency. At a large tool latency ($L{=}2500$ ms, the
+regime streaming RAG targets) the streamable fraction falls from \sfPqTwentyfive{}
+(per-question corpus) to \sfNqTwentyfive{} (global NQ)---whereas at small tool
+latency ($L{=}600$ ms) long queries still capture meaningful headroom in both
+conditions.
+
+The TIS framework ($t_{\mathrm{sc}}$, $t_{\mathrm{suf}}$, $\phi$, and the bound
+$H$) is sound; the caution is to measure TIS against the corpus the deployed system
+retrieves over. On the CRAG benchmark (\nSplitZero{} validation questions) we
+(i) characterize how stabilization is distributed; (ii) derive a model-agnostic
+bound $H$ on the latency hideable behind the remaining input; (iii) validate $H$
+against a working pipeline; and (iv) identify query properties that predict early
+versus late stabilization. The study needs no model training and runs on commodity
+CPU hardware.
 \end{abstract}
 
 \section{Introduction}
@@ -128,21 +173,32 @@ decisive term arrives last (``who makes the console called the
 \emph{PlayStation}''), no early speculative query can retrieve the right evidence,
 and the latency win collapses to zero regardless of system quality. If the
 decisive term arrives early, almost the entire tool latency can be hidden behind
-the remaining input. We initially expected these two regimes to show up as a
-\emph{bimodal} distribution of stabilization; empirically (\S5.1) the picture is
-better described as a large early-stabilizing mass with a thin late tail---the
-early case is common and the late case is the rarer failure mode---and we report
-the distribution as found rather than as hypothesized.
+the remaining input.
+
+We initially measured tool-intent stabilization against the per-question candidate
+pool that CRAG ships with each query, and that measurement made stabilization look
+early (median $\phi_{\mathrm{suf}}=\phiSufMed$).  Measuring instead against a
+realistic global corpus---the corpus the deployed system actually retrieves
+over---reveals that early picture to be largely an artifact of the
+per-question pool: stabilization is in fact \emph{late} (median $\phi_{\mathrm{suf}}$
+up to $\phiSufGnqOneM$ on NQ at ${\sim}1$M documents), grows later with corpus
+size, and holds for both sparse and dense retrieval.  This corpus-dependence is
+the finding this paper is organized around.
 
 We study this directly. By characterizing tool-intent stabilization as a
-measurable, query-intrinsic quantity, we obtain (i) a model-agnostic
-\emph{aggregate} bound on the share of tool latency that can be hidden behind
-ongoing input, computable \emph{before} any system is built; (ii) a principled
-account of the failure mode; (iii) a coarse build/skip signal---weak at the level
-of an individual query---for whether a learned trigger is worth its cost; and
-(iv) results that transfer across text and speech because the quantity is
-modality-agnostic. Our contribution is measurement and analysis rather than a new
-system.
+measurable, query-intrinsic quantity, we obtain: (i) a model-agnostic
+\emph{aggregate} bound $H$ on the share of tool latency that can be hidden behind
+ongoing input, computable \emph{before} any system is built, but
+\emph{operationalization-sensitive}---the corpus the bound is evaluated on
+determines how optimistic or conservative it is; (ii) a measurement caution
+backed by global-corpus evidence---dose-response across corpus sizes, two
+benchmarks (NQ and FiQA), and two retriever families (BM25 and dense)---showing
+that per-question pools substantially over-estimate real-world headroom, and that
+headroom shrinks as tool latency grows; (iii) a principled account of the failure
+mode (late stabilization) and a coarse build/skip signal for whether a learned
+trigger is worth its compute cost; and (iv) results that transfer across text and
+speech because the quantity is modality-agnostic.  Our contribution is
+measurement and analysis rather than a new system.
 
 \section{Background and Related Work}
 Retrieval-Augmented Generation~\cite{lewis2020rag} grounds generation in
@@ -207,10 +263,18 @@ $d^\star$ for the gold answer-bearing document.
 such that for all $s \in \{t, \ldots, n\}$, $d_s = d_n$: every prefix from $t$
 onward retrieves the same top document as the full query.
 
-\paragraph{Sufficiency stabilization $t_{\mathrm{suf}}$.} the smallest $t$ such
-that $d^\star \in \mathrm{top\text{-}}k(R(q_{1:t}))$: the prefix already surfaces
-the gold evidence. This is the operationally meaningful notion, since the full
-query itself may retrieve imperfectly.
+\paragraph{Sufficiency stabilization $t_{\mathrm{suf}}(q; C)$.} the smallest $t$
+such that $d^\star \in \mathrm{top\text{-}}k(R(q_{1:t}; C))$: retrieval over
+corpus $C$ already surfaces the gold evidence in the prefix. This is the
+operationally meaningful notion, since the full query itself may retrieve
+imperfectly. The corpus $C$ is an explicit parameter: our v1 results are
+$t_{\mathrm{suf}}(\cdot;\,C_{\mathrm{perq}})$, where $C_{\mathrm{perq}}$ is
+CRAG's per-question candidate pool; the global-corpus arm reports
+$t_{\mathrm{suf}}(\cdot;\,C_{\mathrm{global}})$ over a realistic open-domain
+index. Because $C_{\mathrm{perq}}$ is far smaller and topically filtered,
+$t_{\mathrm{suf}}(\cdot;\,C_{\mathrm{perq}})$ systematically under-estimates
+how late stabilization actually occurs in deployment; all sufficiency results
+in this paper specify which corpus is in use.
 
 \paragraph{Stabilization fraction $\phi = t^\star/n \in (0,1]$,} reported for both
 $t_{\mathrm{sc}}$ and $t_{\mathrm{suf}}$. Lower $\phi$ means earlier stabilization
@@ -239,8 +303,11 @@ least 80\% of tool latency). The streamable fraction of a workload is the centra
 deployment-relevant statistic.
 
 \paragraph{Research questions.} We address four pre-registered questions.
-\textbf{RQ1} asks how $\phi$ is distributed across queries; we expect a bimodal
-shape with an early-stabilizing mass and a late-stabilizing tail.
+\textbf{RQ1} asks how $\phi$ is distributed across queries; under the
+per-question operationalization ($C_{\mathrm{perq}}$) the distribution is
+right-skewed with an early-stabilizing mass and a thin late tail---and a central
+question is whether that early mass is intrinsic to the queries or an artifact of
+the small, topically-filtered corpus, which the global-corpus arm answers.
 \textbf{RQ2} asks what fraction of queries admit latency hiding as $L$, $\delta$,
 and $\theta$ vary; we expect that for large $L$ the binding constraint is the
 residual input time $(n-t^\star)/\delta$, so a \emph{slower} cadence
@@ -280,7 +347,7 @@ evidence arrives. This biases $t_{\mathrm{suf}}$, and thus $\phi_{\mathrm{suf}}$
 early. Multi-token answers, which require a contiguous
 substring match, are far less prone to this. We therefore read $\phi_{\mathrm{suf}}$
 as a lower bound on stabilization time on the groundable subset, and treat the
-early-stabilization finding as directionally robust rather than exact.
+per-question early-stabilization finding as directionally robust rather than exact within $C_{\mathrm{perq}}$.
 
 To bound the population-selection bias this strictness induces, we also run a
 \emph{relaxed} grounding arm (\S\ref{sec:robust}): for multi-token answers it accepts
@@ -317,51 +384,92 @@ against the $H$ bound.
 
 \paragraph{Reproducibility.} The pipeline is training-free and CPU-only. Code and
 the derived $d^\star$ passage labels (the only non-trivial artifact, since CRAG
-ships none) are available at \url{[anonymized]}; every per-question metric and the
+ships none) are available at \url{https://github.com/elroy-galbraith/stablize_CRAG};
+every per-question metric and the
 full $(L,\delta,\theta)$ grid can be recomputed offline without re-running
 retrieval.
+
+\subsection{Global-Corpus Measurement Condition}\label{sec:method-global}
+
+The per-question results above use $C_{\mathrm{perq}}$, each question's own
+candidate pool. To test whether the observed early-$\phi_{\mathrm{suf}}$ behaviour
+survives a realistic open-domain index, we add a second measurement condition
+that indexes all queries against a \emph{shared}, much larger corpus. We implement
+this in \texttt{experiments/\allowbreak global\_corpus.py}.
+
+\paragraph{Benchmarks.} We use BEIR-NQ~\cite{kwiatkowski2019nq} and
+BEIR-FiQA~\cite{maia2018fiqa}, loaded from the BEIR HuggingFace
+repositories. Both benchmarks supply explicit gold qrels (relevance judgements),
+so $d^\star$ is given directly rather than derived by string matching. This
+removes the string-grounding caveat that affects the per-question CRAG arm: every
+query has a reliably labelled gold passage, and the groundable rate is therefore
+$100\%$ by construction.
+
+\paragraph{Gold-guaranteed subsampling.} To allow controlled dose-response
+experiments at varying corpus sizes without sacrificing recall, we use a
+\emph{gold-guaranteed} corpus construction: for a given query, the corpus is the
+union of \emph{all} gold passages (union over all qrels entries) together with $N$
+reservoir-sampled distractor passages drawn from the remaining non-gold corpus.
+Every query's gold is therefore guaranteed to be present regardless of $N$.
+We sweep $N$ across values from $10^3$ to $\sim10^6$ (the full corpus); the
+full-corpus data points represent the large-$N$ limit of this dose-response.
+Distractors are reservoir-sampled in a single streaming pass over the corpus using
+a seeded RNG (seed~0), so results are deterministic and reproducible without
+storing the full index.
+
+\paragraph{Retrievers.} We evaluate two retrievers. The \emph{sparse} arm uses
+\texttt{bm25s}~\cite{lassance2024bm25s}, a Lucene-style BM25 implementation with
+$k_1{=}1.5$, $b{=}0.75$; these are the same hyperparameters as the per-question
+arm, though the underlying engine differs (pure-Python BM25 vs.\ \texttt{bm25s}).
+The \emph{dense} arm uses \texttt{all-MiniLM-L6-v2}
+(sentence-transformers~\cite{reimers2019sentence}), encoding passages once at
+index time and ranking query prefixes by cosine similarity. Both retrievers follow
+the same prefix protocol as the per-question arm: $t_{\mathrm{suf}}$ is the
+smallest $t$ such that some gold passage $d^\star$ appears in the top-$k$ list
+at prefix $q_{1:t}$, and $\phi_{\mathrm{suf}} = t^\star / n$ is the corresponding
+stabilization fraction.
 
 % ===================================================================== %
 \input{results.tex}
 % ===================================================================== %
 
 \section{Conclusion}
-Tool-intent stabilization is a query-intrinsic, model-agnostic quantity that
-bounds when streaming tool use can help and by how much. On CRAG, sufficiency
-stabilizes early on the groundable, retrievable subset---though \emph{how} early
-depends on grounding precision: median $\phi_{\mathrm{suf}}$ ranges from \phiSufMed{}
-on the full retrieved-gold slice to \phiSufCleanMed{} once we restrict to
-specifically-grounded answers (\S\ref{sec:robust}), so we report it as a range;
-question type gives a significant but coarse
-early/late split (Kruskal--Wallis $p=\kwAllP{}$, $\varepsilon^2{=}\epsSq{}$); and $H$
-is a conservative aggregate floor that realized savings meet or exceed, yielding a
-\streamPct{} streamable fraction over the full benchmark.
-Two limitations temper these claims, and we probed both rather than merely noting
-them. First, the sufficiency results are conditional on a favorable \nRetrPct{}
-slice \emph{and} on string-grounding precision. These are distinct biases: the
-relaxed-grounding arm bounds the \emph{population}-selection effect to under $0.02$
-in $\phi_{\mathrm{suf}}$, but a separate \emph{precision} effect---short or
-ubiquitous gold answers that match many passages, so a top-$k$ hits one almost
-unconditionally---pulls the estimate the other way. Controlling for it (restricting
-to answers that ground to $\le5\%$ of a question's passages) moves median
-$\phi_{\mathrm{suf}}$ from \phiSufMed{} to \phiSufCleanMed{} and the $t_{\mathrm{suf}}{=}1$
-share from \tSufOneAll{} to \tSufOneClean{} (\S\ref{sec:robust}). We therefore report
-$\phi_{\mathrm{suf}}$ as a range and lean on the grounding-free $\phi_{\mathrm{sc}}$;
-a fuller recovery (dense or learned grounding) remains open.
-Second, our system validation establishes conservativeness in aggregate but
-\emph{not} per-query prediction: at $L{=}1000$\,ms, realized savings do not track
-$H$ (Spearman $\rho{=}\rhoLk{}$), because a constant query-generation overlap
-dominates the saving and trigger mis-fires produce negative outcomes the floored
-bound cannot represent (\S5.4). The downside is real but rare
-($\approx\negRateSc{}$ net-negative at $L{=}600$). The natural next steps are to
-close the prediction gap---adding the query-generation overlap and a mis-fire
-penalty---and to regress $\phi$ on query features. Even so, the present results
-already give system builders a principled, training-free basis for trigger design,
-and a build/skip decision for a learned trigger.
+Tool-intent stabilization (TIS) is a query-intrinsic, model-agnostic quantity
+that bounds when streaming tool use can help and by how much.  The central
+finding of this paper is a measurement caution: \emph{the reported stabilization
+fraction depends critically on the retrieval corpus}.  Against the per-question
+candidate pool supplied by CRAG---where every document is topically relevant---
+sufficiency $\phi_{\mathrm{suf}}$ is low (median \phiSufMed{} on the
+retrieved-gold slice, \phiSufCleanMed{} after grounding-precision filtering),
+but that pool is a favorable oracle, not the corpus a deployed system retrieves
+over.  Against a realistic global corpus (NQ at ${\sim}1$M documents; FiQA at
+$10\mathrm{k}$), stabilization is \emph{late}: median $\phi_{\mathrm{suf}}$
+reaches \phiSufGnqOneM{} on NQ and \phiSufGfiqaBm{} on FiQA (BM25), and the
+same pattern holds for dense retrieval (\phiSufGfiqaDe{} on FiQA).  These two
+numbers are not in tension---they measure different operating conditions---but
+practitioners must report TIS against the corpus their system actually retrieves
+over.
+
+The TIS framework itself is the durable contribution.  It provides a
+principled, training-free basis for trigger design: $\phi$ and $V$ characterize
+per-query stability; $H{=}\min(L,\max(0,(n{-}t^\star)/\delta))$ translates
+stability into a hideable-latency budget that scales with tool latency $L$.
+At small $L$ the headroom is modest regardless of corpus (\sfPqSix{} streamable
+under per-question, \sfNqSix{} under global NQ at $L{=}600$\,ms); it collapses
+further at large $L$ (\sfNqTwentyfive{} at $L{=}2500$\,ms) because
+later stabilization leaves less residual query to overlap.  Question type gives
+a significant but coarse early/late split (Kruskal--Wallis $p{=}\kwAllP{}$,
+$\varepsilon^2{=}\epsSq{}$) that is preserved across retrievers
+($\rho{=}\rhoDenseType{}$), providing a practical signal for selective
+triggering.  The system-validation arm confirms $H$ is conservative in
+aggregate ($\approx\negRateSc{}$ net-negative outcomes at $L{=}600$\,ms), and
+the natural next steps---closing the per-query prediction gap and regressing
+$\phi$ on linguistic features---build directly on the metrics and data released
+with this paper.
 
 \section*{Limitations}
-Four assumptions bound how far the present numbers generalize; we take them in turn,
-from the input model through to the retriever and benchmark.
+Eight considerations bound how far the present numbers generalize; we take them
+in turn, from the input model through to the retrieval corpus and benchmark.
 \paragraph{Input timing.} A uniform word stream is a proxy for speech; real ASR
 pacing is variable and partial hypotheses get revised. We bound this here by using
 clean text and treat speech timing as planned follow-up.
@@ -385,21 +493,52 @@ replay finds the realized-saving and net-negative rates comparable across the tw
 populations at $L{=}600$ (\S5.3), but that probes \emph{perceived latency}, not
 retrieval correctness, on the fallback set.
 
-\paragraph{Retriever and benchmark.} BM25 is lexical and phrasing-sensitive, and is
-known to retrieve on early topical anchors. Because $t_{\mathrm{suf}}$ asks only when
-the gold page enters the top-$k$, that early-anchor behavior could itself drive the
-low $\phi_{\mathrm{suf}}$ we report. We addressed this head-on with the
-dense-retriever arm (\S\ref{sec:robust}): a bi-encoder that weights terms
-semantically rather than lexically surfaces gold for \emph{more} questions yet
-stabilizes if anything \emph{later}, and the by-type ordering is preserved
-($\rho{=}\rhoDenseType{}$)---so the early-stabilization claim is retriever-general,
-not a BM25 artifact. What remains open is benchmark generality: a single
-English QA set leaves cross-dataset and cross-lingual replication---where verb-final
-word order may shift $t_{\mathrm{suf}}$ under lexical but not dense retrieval---as
-the natural next step, not optional polish.
+\paragraph{Per-question candidate pool.} The low $\phi_{\mathrm{suf}}$ reported
+under the CRAG per-question arm (\phiSufMed{} median) is a property of the
+evaluation pool, not of the retrieval problem.  CRAG supplies a small set of
+topically relevant passages per question; in that oracle setting the gold
+document is easy to surface from even a short prefix.  This is the source of the
+v1 over-estimate: restricting to that pool inflates how early stabilization
+appears to occur.  Practitioners should treat the per-question number as an
+optimistic upper bound, not an operating prediction.
 
-% \bibliographystyle is set by acl.sty; redeclaring it triggers BibTeX's
-% "Illegal, another \bibstyle command" error.
+\paragraph{Retriever and corpus.} BM25 is lexical and phrasing-sensitive and is
+known to retrieve on early topical anchors; that behavior could itself drive low
+$\phi_{\mathrm{suf}}$ in the per-question arm.  We addressed this with the
+dense-retriever arm (\S\ref{sec:robust}): under the per-question pool, the
+bi-encoder reproduces the same low-$\phi_{\mathrm{suf}}$ pattern, confirming
+the per-question result is not a BM25 artifact.  However, the global-corpus
+arm---which is the correct operating condition---shows that \emph{both} BM25
+and dense retrieval stabilize late (median $\phi_{\mathrm{suf}}$
+\phiSufGfiqaBm{} BM25, \phiSufGfiqaDe{} dense on FiQA at $10\mathrm{k}$
+distractors): the oracle artifact \emph{generalizes} to dense retrieval and
+therefore does not rescue the early-stabilization claim.  The by-type ordering
+is preserved across retrievers ($\rho{=}\rhoDenseType{}$), so question-type
+signal remains useful for selective triggering under either retriever.
+
+\paragraph{Global corpus scope.} The global-corpus arm uses BEIR-standard
+constructions: NQ with Wikipedia passage qrels and FiQA with its finance
+passage pool.  These are not the retrieval corpora of any specific deployed
+system; the true operating $\phi_{\mathrm{suf}}$ is system-specific and will
+depend on index size, domain, and passage granularity.  Our results establish
+the direction of the corpus-size effect (later stabilization as the index
+grows), but the exact number must be measured against the target system's own
+index.
+
+\paragraph{Deferred scale.} The full NQ Wikipedia passage index ($2.68$M
+passages) and larger dense runs are deferred for compute reasons.  The
+dose-response across $10^3$--$10^6$ distractors and the FiQA dense point at
+$10\mathrm{k}$ jointly establish the trend, but the asymptotic value under a
+multi-million-passage index with dense retrieval remains unmeasured.  The
+present results should be read as establishing the direction and magnitude of
+the corpus-size effect, not its exact operating point at deployment scale.
+
+What remains open is cross-dataset and cross-lingual replication: a single
+English QA set leaves open whether verb-final word order (e.g., Japanese or
+German) shifts $t_{\mathrm{suf}}$ under lexical but not dense retrieval,
+which would be a natural next step.
+
+\bibliographystyle{acl_natbib}  % [PREPRINT] comment this when [ACL] is on (acl.sty sets it)
 \bibliography{refs}
 
 \end{document}

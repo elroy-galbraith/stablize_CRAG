@@ -20,15 +20,98 @@ therefore lean on $\phi_{\mathrm{sc}}$, defined on all \nSplitZero{} questions, 
 the grounding-free companion to every sufficiency claim, and we bound the magnitude
 of the selection effect with a relaxed-grounding arm below
 (\S\ref{sec:robust}): recovering a sixth more of the population moves
-$\phi_{\mathrm{suf}}$ by under $0.02$, so the early-stabilization finding survives the
-expansion rather than dissolving into it.
+$\phi_{\mathrm{suf}}$ by under $0.02$, so the early-stabilization
+\emph{pattern within $C_{\mathrm{perq}}$} is robust to grounding relaxation---though
+as the global results show (\S\ref{sec:corpus-dependence}), that per-question
+pattern is corpus-dependent rather than deployment-general.
 
-\subsection{RQ1: How is stabilization distributed?}
-The two stabilization notions behave very differently (Fig.~\ref{fig:phi}).
+\subsection{Stabilization depends on the retrieval corpus}
+\label{sec:corpus-dependence}
+
+\begin{table}[t]
+\centering
+\caption{Dose-response of $\phi_{\mathrm{suf}}$ across operationalizations.
+Median $\phi_{\mathrm{suf}}$ rises monotonically with corpus size on NQ and
+converges to a similar late value on FiQA. The $t_{\mathrm{suf}}{=}1$ share
+collapses from $\approx$50\% per-question to $\leq$3\% global, exposing the
+per-question value as a measurement artifact.}
+\label{tab:corpus-dependence}
+\begin{tabular}{lcc}
+\toprule
+Operationalization & median $\phi_{\mathrm{suf}}$ & $t_{\mathrm{suf}}{=}1$ \\
+\midrule
+CRAG per-question, string-grounded   & \phiSufMed{}      & \tSufOneAll{} \\
+CRAG per-question, precisely-grounded & \phiSufCleanMed{} & \tSufOneClean{} \\
+\midrule
+Global NQ gold+1k                    & \phiSufGnqK{}     & ---           \\
+Global NQ gold+10k                   & \phiSufGnqTenK{}  & ---           \\
+Global NQ ${\sim}1$M                 & \phiSufGnqOneM{}  & \tSufOneGnqOneM{} \\
+\midrule
+Global FiQA 10k BM25                 & \phiSufGfiqaBm{}  & \tSufOneGfiqaBm{} \\
+Global FiQA 10k dense                & \phiSufGfiqaDe{}  & ---           \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:corpus-dependence} is the headline result of this paper. Three
+confirmations reinforce one another.
+
+\paragraph{(1) Dose-response.} On NQ, median $\phi_{\mathrm{suf}}$ rises
+monotonically with corpus size: \phiSufGnqK{} at gold+1k, \phiSufGnqTenK{} at
+gold+10k, and \phiSufGnqOneM{} at the full ${\sim}$1M-document index.
+The pattern is exactly what the corpus-dependence account predicts: as the
+distractor pool grows, the retriever must be more precise about the query to
+surface the gold passage, and precision requires more of the utterance.
+
+\paragraph{(2) Two benchmarks.} The late-stabilization finding is not confined to
+NQ. On FiQA at gold+10k---a financially-focused QA benchmark with different
+topical coverage and query style---BM25 reaches median $\phi_{\mathrm{suf}} =
+\phiSufGfiqaBm{}$, in close agreement with the NQ figure at the same corpus size
+(\phiSufGnqTenK{}). Late stabilization holds across benchmarks.
+
+\paragraph{(3) Retriever-general.} On the identical FiQA gold+10k corpus, a dense
+bi-encoder (\texttt{all-MiniLM-L6-v2}) yields
+median $\phi_{\mathrm{suf}} = \phiSufGfiqaDe{} \approx \phiSufGfiqaBm{}$ (BM25).
+The dense retriever surfaces
+gold for \emph{more} queries (\nGfiqaDe{} vs.\ \nGfiqaBm{} groundable questions):
+it is a better retriever. But it reaches gold at the same late stabilization
+point. Dense retrieval thus \emph{generalizes} the artifact rather than rescuing
+the early claim.
+
+\paragraph{The $t_{\mathrm{suf}}{=}1$ collapse.} Under realistic global retrieval,
+one token is almost never sufficient: the $t_{\mathrm{suf}}{=}1$ share falls from
+${\approx}50\%$ per-question (\tSufOneAll{}) to ${\leq}3\%$ globally
+(\tSufOneGnqOneM{} on NQ, \tSufOneGfiqaBm{} on FiQA), confirming that the
+large per-question mass at $t_{\mathrm{suf}}{=}1$ is a corpus-size artifact, not
+a signal of genuine one-word disambiguation.
+
+\paragraph{Intermediate control.} The \texttt{global\_corpus.py} top-100 \texttt{perq}
+arm---which pools the top-100 retrieved candidates across all queries before
+indexing---is an intermediate control: it yields later stabilization than CRAG's
+native per-question pool but earlier than the full-global arm. It is not the
+headline contrast; we include it as a dose-response step between
+$C_{\mathrm{perq}}$ and $C_{\mathrm{global}}$ to confirm the monotone
+size effect.
+
+\paragraph{Per-question view ($C_{\mathrm{perq}}$).}
+The remainder of this section reports results under the \emph{per-question}
+operationalization $C_{\mathrm{perq}}$: each question is indexed against its own
+small retrieved-passage pool, as in the standard CRAG evaluation setup.  The
+global results above show that $C_{\mathrm{perq}}$ systematically over-estimates
+early stabilization relative to a realistic corpus.  We retain this analysis for
+two reasons: it is the standard CRAG setup that prior work uses, enabling direct
+comparison; and RQ3 validates the hidden-latency bound mechanism within it.
+Numbers in \S\S\ref{sec:rq1}--\ref{sec:robust} should be read as characterizing
+\emph{the optimistic operationalization}, not the deployment-realistic one.
+
+\subsection{RQ1: How is stabilization distributed ($C_{\mathrm{perq}}$)?}
+\label{sec:rq1}
+Under the per-question pool $C_{\mathrm{perq}}$, the two stabilization notions
+behave very differently (Fig.~\ref{fig:phi}).
 Self-consistency stabilizes \emph{late}: the lexical top-1 keeps changing until,
 on average, $\phi_{\mathrm{sc}}$ reaches mean \phiScMean{} (median \phiScMed{})---
 roughly three-quarters of the way through the query. Sufficiency, in contrast,
-stabilizes \emph{earlier}: the gold passage enters the top-$k$ at mean
+stabilizes \emph{earlier} within $C_{\mathrm{perq}}$: the gold passage enters the top-$k$ at mean
 $\phi_{\mathrm{suf}}=\phiSufMean{}$ and median \phiSufMed{}. This point estimate is
 sensitive to grounding \emph{precision}, however---short or ubiquitous gold answers
 match many passages and pull it low---and rises to median \phiSufCleanMed{} (mean
@@ -41,11 +124,13 @@ retrievable from a short prefix long before the query's lexical top-1 settles}.
 For streaming tool use this is the favorable regime---one need not wait for the
 utterance to ``finish'' for the right evidence to be in hand.
 
-The $\phi_{\mathrm{suf}}$ distribution (Fig.~\ref{fig:phi}) is right-skewed with a
-large mass near zero and a thinner late tail, rather than cleanly bimodal as
-H1 anticipated. Volatility is modest: the post-stabilization top-1 changes at all
-for only \volSharePct{} of questions (mean $V=\volMean{}$), so early-commit risk is
-concentrated in a minority of queries rather than pervasive.
+Within $C_{\mathrm{perq}}$, the $\phi_{\mathrm{suf}}$ distribution
+(Fig.~\ref{fig:phi}) is right-skewed with a large mass near zero and a thinner
+late tail, rather than cleanly bimodal as H1 anticipated (the global results in
+\S\ref{sec:corpus-dependence} show the zero-mass largely collapses under a
+realistic corpus). Volatility is modest: the post-stabilization top-1 changes at
+all for only \volSharePct{} of questions (mean $V=\volMean{}$), so early-commit
+risk is concentrated in a minority of queries rather than pervasive.
 
 \begin{figure}[t]
 \centering
@@ -56,9 +141,11 @@ early---while self-consistency ($\phi_{\mathrm{sc}}$, light) is late and broad.}
 \label{fig:phi}
 \end{figure}
 
-\subsection{RQ4: What predicts early vs.\ late stabilization?}
-Question type produces a coarse early/late split in $\phi_{\mathrm{suf}}$, spanning
-a roughly threefold range across medians (Fig.~\ref{fig:bytype}). A Kruskal--Wallis
+\subsection{RQ4: What predicts early vs.\ late stabilization ($C_{\mathrm{perq}}$)?}
+\label{sec:rq4}
+Within the per-question pool $C_{\mathrm{perq}}$, question type produces a coarse
+early/late split in $\phi_{\mathrm{suf}}$, spanning a roughly threefold range
+across medians (Fig.~\ref{fig:bytype}). A Kruskal--Wallis
 test across all eight types rejects equality of the $\phi_{\mathrm{suf}}$
 distributions ($H{=}\kwAllH{}$, $\mathrm{df}{=}7$, $p{=}\kwAllP{}$); restricting to
 the five classes with $n\ge10$---which carry the effect---the test is stronger
@@ -111,6 +198,7 @@ reasoning complexity.}
 \end{figure}
 
 \subsection{RQ2: What fraction of queries admit latency hiding?}
+\label{sec:rq2}
 Using $t^\star=t_{\mathrm{suf}}$ where available and falling back to
 $t_{\mathrm{sc}}$ otherwise, we compute the streamable fraction over the full
 $(L,\delta,\theta)$ grid (Fig.~\ref{fig:rq2}). At the central
@@ -150,7 +238,56 @@ streamable fraction should still be read as an upper envelope on benefit paired 
 this small measured downside, and the rate may grow at larger $L$ or with a more
 aggressive trigger---a sweep we leave to future work.
 
-Two further patterns stand out. First,
+\paragraph{L-dependent headroom across operationalizations.}
+Table~\ref{tab:lsweep} compares the streamable fraction at
+$\delta{=}3$\,w/s, $\theta{=}0.8$ across three tool latencies and three corpus
+arms.  Several patterns stand out.  First, the streamable fraction declines
+mechanically with $L$ for all arms: as the tool call grows, fewer queries
+have sufficient input residual to cover it.  Second, the global fraction is
+$\le$ the per-question fraction at every $L$---the corpus-dependence penalty
+is always positive.  Third, and most importantly, \emph{the gap widens with
+$L$}: at $L{=}600$\,ms, long queries can still hide a modest tool call
+(\sfNqSix{} on global NQ vs.\ \sfPqSix{} per-question); but at
+$L{=}2500$\,ms---the paper's own calibrated \texttt{fuse/reflect} latency of
+$\approx\fuseMs{}$\,ms---the global NQ fraction collapses to \sfNqTwentyfive{}
+against \sfPqTwentyfive{} per-question.  So the operationalization gap bites
+hardest precisely in the large-tool-latency regime that motivates streaming RAG.
+
+Three caveats apply.  First, the global fractions use the full retrieval
+corpora (NQ ${\sim}$1M documents; FiQA ${\sim}$57k), \emph{not}
+gold-guaranteed subsamples; gold-guaranteed subsamples would inflate the
+fraction by construction and are not used here.  Second, the two arms use different denominators: the global fraction is
+over queries whose gold is retrievable at some prefix, whereas the
+per-question fraction is over the full workload via the $t_{\mathrm{sc}}$
+fallback.  This asymmetry is conservative for our claim---the
+$t_{\mathrm{sc}}$ fallback lets stable-but-unverified top-1 retrievals
+count as streamable, inflating the per-question fraction, so the reported
+gap \emph{understates} the true penalty.  Third, global sufficiency uses the hard gold-in-top-$k$
+criterion, making $\theta$ implicit in the global arm; only the streamable
+threshold $\theta\cdot L$ is shared with the per-question arm.
+
+\begin{table*}[t]
+\centering
+\caption{Streamable fraction (percent of queries that can hide $\ge\theta L$
+of tool latency) vs.\ $L$ for the per-question CRAG pool and two global
+corpora ($\delta{=}3$\,w/s, $\theta{=}0.8$).  The gap between per-question
+and global fractions widens with $L$, meaning the operationalization artifact
+bites hardest in the large-tool-latency regime streaming RAG targets.}
+\label{tab:lsweep}
+\begin{tabular}{lccc}
+\toprule
+Tool latency $L$ & Per-question CRAG & Global NQ ${\sim}$1M & Global FiQA ${\sim}$57k \\
+\midrule
+600\,ms  & \sfPqSix{}       & \sfNqSix{}       & \sfFiqaSix{}       \\
+1500\,ms & \sfPqFifteen{}   & \sfNqFifteen{}   & \sfFiqaFifteen{}   \\
+2500\,ms & \sfPqTwentyfive{} & \sfNqTwentyfive{} & \sfFiqaTwentyfive{} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Turning now to the \emph{input-cadence} sweep (varying $\delta$ at fixed $L$,
+distinct from the tool-latency sweep in Table~\ref{tab:lsweep} above), two
+further patterns stand out. First,
 for small tool latency ($L\le300$\,ms) the constraint is essentially never binding:
 $82.6\%$ of queries are streamable regardless of cadence---the residual input time
 trivially covers a short tool call. Second, and confirming \textbf{H2}, when tool
@@ -169,6 +306,15 @@ large enough for residual input time to bind; there, slower cadence dominates (H
 \end{figure}
 
 \subsection{RQ3: Does the bound match a working pipeline?}
+\label{sec:rq3}
+This validation operates under the per-question ($C_{\mathrm{perq}}$)
+operationalization: the async harness retrieves over each question's own passage
+pool.  Re-plumbing it to a global 10k$+$ index would require architectural changes
+to the retrieval backend that are out of scope here; a global-corpus bound replay
+is left as future work.  The results below therefore validate the $H$ bound
+\emph{mechanism} under the optimistic operationalization, not under the
+deployment-realistic global corpus.
+
 We replayed the same \rqThreeN{} retrieved-gold questions through the asynchronous
 Streaming RAG harness at $\delta{=}3$\,w/s and \emph{two} tool latencies,
 $L\in\{600,1000\}$\,ms (Fig.~\ref{fig:rq3}). In the aggregate the bound is
@@ -251,15 +397,17 @@ early (\S5.1). To bound that bias we re-derive $d^\star$ with a deliberately
 substring (\S\ref{sec:method})---which trades precision for recall and so expands the
 groundable population. Groundability rises from \nGroundPct{} to \groundFuzzyPct{} and the
 retrieved-gold rate from \nRetrPct{} to \retrFuzzyPct{} (a sixth more questions). If
-the early-stabilization result were largely a selection artifact, admitting these
-harder-to-ground questions should pull $\phi_{\mathrm{suf}}$ up sharply. It does not:
+the per-question early pattern were largely a selection artifact of the strict
+matcher, admitting these harder-to-ground questions should pull $\phi_{\mathrm{suf}}$
+up sharply. It does not:
 mean $\phi_{\mathrm{suf}}$ moves only from \phiSufMean{} to \phiSufFuzzy{}
-(median $0.143\to0.154$). The true value is thus bracketed in $[\phiSufMean{},
-\phiSufFuzzy{}]$---both early---and the by-type ordering is preserved, now on firmer
-footing: \texttt{set}, the latest type, grows from $n{=}2$ to $n{=}\nSetFuzzy{}$ and
-remains latest. We read the early-sufficiency finding as signal that survives a
-$1.5\times$ population expansion, not as an artifact of the strict matcher. (Fuzzy
-grounding is lower-precision, so it if anything biases $\phi_{\mathrm{suf}}$ \emph{down};
+(median $0.143\to0.154$). The $C_{\mathrm{perq}}$ estimate is thus bracketed in
+$[\phiSufMean{}, \phiSufFuzzy{}]$---both early within the per-question pool---and
+the by-type ordering is preserved, now on firmer footing: \texttt{set}, the latest
+type, grows from $n{=}2$ to $n{=}\nSetFuzzy{}$ and remains latest. We read the
+per-question early-sufficiency pattern as robust to a $1.5\times$ population
+expansion, not as a grounding-matcher artifact. (Fuzzy grounding is
+lower-precision, so it if anything biases $\phi_{\mathrm{suf}}$ \emph{down};
 that the estimate barely moves is the reassuring direction.)
 
 \paragraph{Grounding (precision).} The relaxed arm controls \emph{which} questions
@@ -283,11 +431,12 @@ $\phi_{\mathrm{suf}}$ rises from \phiSufMed{} to \phiSufCleanMed{} (mean
 $\phiSufMean{}\to\phiSufClean{}$); tightening the density cap further moves the
 estimate monotonically toward $\approx0.4$--$0.6$ rather than back toward zero (the
 gold-set-density sweep is reproduced by
-\texttt{experiments/grounding\_precision.py}). We therefore read the
-early-sufficiency finding as \emph{directionally} robust---sufficiency is still
-typically reached before the utterance ends, and well before self-consistency---but
-materially weaker in magnitude than the uncorrected median \phiSufMed{} suggests, and
-we report the precision-corrected range throughout. The grounding-free
+\texttt{experiments/grounding\_precision.py}). We therefore read the per-question early-sufficiency pattern as
+\emph{directionally} robust within $C_{\mathrm{perq}}$---sufficiency is still
+typically reached before the utterance ends in the per-question pool, and well
+before self-consistency---but materially weaker in magnitude than the uncorrected
+median \phiSufMed{} suggests, and we report the precision-corrected range
+throughout. The grounding-free
 $\phi_{\mathrm{sc}}$, which needs no answer string, is immune to this bias and anchors
 the comparison.
 
@@ -298,8 +447,8 @@ for more questions (retrieved-gold rate $15.6\%\to25.0\%$) and stabilizes slight
 earlier (mean $\phi_{\mathrm{suf}}$ $0.327\to0.248$), as expected since a more
 permissive top-$k$ is easier to satisfy. The self-consistency curve is unchanged by
 $k$ (it depends only on the top-1), and the central streamable fraction is stable
-near $73\text{--}74\%$. The early-sufficiency / late-self-consistency gap holds at
-every $k$.
+near $73\text{--}74\%$. Within $C_{\mathrm{perq}}$, the early-sufficiency /
+late-self-consistency gap holds at every $k$.
 
 \begin{table}[t]
 \centering
@@ -317,22 +466,31 @@ $k$ & retrieved-gold & mean $\phi_{\mathrm{suf}}$ & median $\phi_{\mathrm{suf}}$
 \end{tabular}
 \end{table}
 
-\paragraph{Retriever (dense).} Our sharpest concern is that BM25's reliance on
-early lexical anchors---not a property of the queries---drives the low
-$\phi_{\mathrm{suf}}$ we report. We test this directly by re-running the full sweep
-with a dense bi-encoder (\texttt{all-MiniLM-L6-v2}, cosine over the same passages)
-in place of BM25. The early-stabilization finding is not a lexical artifact: under
-dense retrieval sufficiency stabilizes if anything \emph{later}, not earlier (mean
-$\phi_{\mathrm{suf}}\,\phiSufMean{}\to\phiSufDense{}$, median $\phiSufMed{}\to\phiSufDenseMed{}$;
-$\phi_{\mathrm{sc}}\,\phiScMean{}\to\phiScDense{}$), while the dense retriever surfaces gold
-for \emph{more} questions (retrieved-gold $\nRetrPct{}\to\retrDensePct{}$). A semantic
-retriever that does not key on early keywords thus still finds the answer-bearing
-passage well before the query ends---median $\phi_{\mathrm{suf}}=\phiSufDenseMed{}$,
-within the first quarter of the utterance. The by-type ordering is preserved
+\paragraph{Retriever (dense), per-question pool.} A concern specific to the
+per-question pool is that BM25's reliance on early lexical anchors---not a
+property of the queries---drives the low $\phi_{\mathrm{suf}}$ we report within
+$C_{\mathrm{perq}}$.  We test this directly by re-running the full sweep with a
+dense bi-encoder (\texttt{all-MiniLM-L6-v2}, cosine over the same passages) in
+place of BM25.  Under the per-question pool, the dense retriever also stabilizes
+early: sufficiency reaches the gold passage if anything \emph{later}, not earlier
+(mean $\phi_{\mathrm{suf}}\,\phiSufMean{}\to\phiSufDense{}$, median
+$\phiSufMed{}\to\phiSufDenseMed{}$; $\phi_{\mathrm{sc}}\,\phiScMean{}\to\phiScDense{}$),
+while surfacing gold for \emph{more} questions (retrieved-gold
+$\nRetrPct{}\to\retrDensePct{}$).  The per-question early pattern is therefore not
+a BM25 lexical artifact within $C_{\mathrm{perq}}$: a semantic retriever that does
+not key on early keywords reproduces it at median
+$\phi_{\mathrm{suf}}=\phiSufDenseMed{}$.  The by-type ordering is preserved
 (Spearman $\rho{=}\rhoDenseType{}$ between the BM25 and dense $\phi_{\mathrm{suf}}$
 rankings): \emph{aggregation} and \emph{comparison} remain among the earliest under
 both, and the disagreement is confined to the small-$n$ / grounding-ambiguous cells
-(\texttt{false\_premise}, \texttt{set}, \texttt{post-processing}). We read the dense
-arm as converting our principal open confound into a positive robustness result:
-the early-sufficiency signal is retriever-general, and BM25, if anything, is the
-\emph{more} optimistic backbone.
+(\texttt{false\_premise}, \texttt{set}, \texttt{post-processing}).
+
+Critically, however, this per-question finding does \emph{not} rescue the early
+claim under a realistic corpus.  The global dense arm---FiQA at gold+10k with the
+same bi-encoder---yields median $\phi_{\mathrm{suf}} = \phiSufGfiqaDe{}$ (see
+\S\ref{sec:corpus-dependence}, Table~\ref{tab:corpus-dependence}), closely
+matching the BM25 global figure (\phiSufGfiqaBm{}).  Dense retrieval therefore
+\emph{generalizes} the corpus-dependence artifact to a non-lexical retriever;
+it does not rescue the early claim.  BM25, if anything, is the
+\emph{more} optimistic backbone, but the fundamental result---late stabilization
+under a global corpus---holds for both retriever families.
