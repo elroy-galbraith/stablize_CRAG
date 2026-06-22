@@ -23,6 +23,73 @@ of the selection effect with a relaxed-grounding arm below
 $\phi_{\mathrm{suf}}$ by under $0.02$, so the early-stabilization finding survives the
 expansion rather than dissolving into it.
 
+\subsection{Stabilization depends on the retrieval corpus}
+\label{sec:corpus-dependence}
+
+\begin{table}[t]
+\centering
+\caption{Dose-response of $\phi_{\mathrm{suf}}$ across operationalizations.
+Median $\phi_{\mathrm{suf}}$ rises monotonically with corpus size on NQ and
+converges to a similar late value on FiQA. The $t_{\mathrm{suf}}{=}1$ share
+collapses from $\approx$50\% per-question to $\leq$3\% global, exposing the
+per-question value as a measurement artifact.}
+\label{tab:corpus-dependence}
+\begin{tabular}{lcc}
+\toprule
+Operationalization & median $\phi_{\mathrm{suf}}$ & $t_{\mathrm{suf}}{=}1$ \\
+\midrule
+CRAG per-question, string-grounded   & \phiSufMed{}      & \tSufOneAll{} \\
+CRAG per-question, precisely-grounded & \phiSufCleanMed{} & \tSufOneClean{} \\
+\midrule
+Global NQ gold+1k                    & \phiSufGnqK{}     & ---           \\
+Global NQ gold+10k                   & \phiSufGnqTenK{}  & ---           \\
+Global NQ ${\sim}1$M                 & \phiSufGnqOneM{}  & \tSufOneGnqOneM{} \\
+\midrule
+Global FiQA 10k BM25                 & \phiSufGfiqaBm{}  & \tSufOneGfiqaBm{} \\
+Global FiQA 10k dense                & \phiSufGfiqaDe{}  & ---           \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:corpus-dependence} is the headline result of this paper. Three
+confirmations reinforce one another.
+
+\paragraph{(1) Dose-response.} On NQ, median $\phi_{\mathrm{suf}}$ rises
+monotonically with corpus size: \phiSufGnqK{} at gold+1k, \phiSufGnqTenK{} at
+gold+10k, and \phiSufGnqOneM{} at the full ${\sim}$1M-document index.
+The pattern is exactly what the corpus-dependence account predicts: as the
+distractor pool grows, the retriever must be more precise about the query to
+surface the gold passage, and precision requires more of the utterance.
+
+\paragraph{(2) Two benchmarks.} The late-stabilization finding is not confined to
+NQ. On FiQA at gold+10k---a financially-focused QA benchmark with different
+topical coverage and query style---BM25 reaches median $\phi_{\mathrm{suf}} =
+\phiSufGfiqaBm{}$, in close agreement with the NQ figure at the same corpus size
+(\phiSufGnqTenK{}). Late stabilization holds across benchmarks.
+
+\paragraph{(3) Retriever-general.} On the identical FiQA gold+10k corpus, a dense
+bi-encoder (\texttt{all-MiniLM-L6-v2}) yields median $\phi_{\mathrm{suf}} =
+\phiSufGfiqaDe{} \approx \phiSufGfiqaBm{}$ (BM25). The dense retriever surfaces
+gold for \emph{more} queries (\nGfiqaDe{} vs.\ \nGfiqaBm{} groundable questions):
+it is a better retriever. But it reaches gold at the same late stabilization
+point. Dense retrieval thus \emph{generalizes} the artifact rather than rescuing
+the early claim.
+
+\paragraph{The $t_{\mathrm{suf}}{=}1$ collapse.} Under realistic global retrieval,
+one token is almost never sufficient: the $t_{\mathrm{suf}}{=}1$ share falls from
+${\approx}50\%$ per-question (\tSufOneAll{}) to ${\leq}3\%$ globally
+(\tSufOneGnqOneM{} on NQ, \tSufOneGfiqaBm{} on FiQA), confirming that the
+large per-question mass at $t_{\mathrm{suf}}{=}1$ is a corpus-size artifact, not
+a signal of genuine one-word disambiguation.
+
+\paragraph{Intermediate control.} The \texttt{global\_corpus.py} top-100 \texttt{perq}
+arm---which pools the top-100 retrieved candidates across all queries before
+indexing---is an intermediate control: it yields later stabilization than CRAG's
+native per-question pool but earlier than the full-global arm. It is not the
+headline contrast; we include it as a dose-response step between
+$C_{\mathrm{perq}}$ and $C_{\mathrm{global}}$ to confirm the monotone
+size effect.
+
 \subsection{RQ1: How is stabilization distributed?}
 The two stabilization notions behave very differently (Fig.~\ref{fig:phi}).
 Self-consistency stabilizes \emph{late}: the lexical top-1 keeps changing until,
