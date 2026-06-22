@@ -374,6 +374,46 @@ ships none) are available at \url{[anonymized]}; every per-question metric and t
 full $(L,\delta,\theta)$ grid can be recomputed offline without re-running
 retrieval.
 
+\subsection{Global-Corpus Measurement Condition}\label{sec:method-global}
+
+The per-question results above use $C_{\mathrm{perq}}$, each question's own
+candidate pool. To test whether the observed early-$\phi_{\mathrm{suf}}$ behaviour
+survives a realistic open-domain index, we add a second measurement condition
+that indexes all queries against a \emph{shared}, much larger corpus. We implement
+this in \texttt{experiments/global\_corpus.py}.
+
+\paragraph{Benchmarks.} We use BEIR-NQ~\cite{kwiatkowski2019nq} and
+BEIR-FiQA~\cite{maia2018fiqa}, loaded from the BEIR HuggingFace
+repositories. Both benchmarks supply explicit gold qrels (relevance judgements),
+so $d^\star$ is given directly rather than derived by string matching. This
+removes the string-grounding caveat that affects the per-question CRAG arm: every
+query has a reliably labelled gold passage, and the groundable rate is therefore
+$100\%$ by construction.
+
+\paragraph{Gold-guaranteed subsampling.} To allow controlled dose-response
+experiments at varying corpus sizes without sacrificing recall, we use a
+\emph{gold-guaranteed} corpus construction: for a given query, the corpus is the
+union of \emph{all} gold passages (union over all qrels entries) together with $N$
+reservoir-sampled distractor passages drawn from the remaining non-gold corpus.
+Every query's gold is therefore guaranteed to be present regardless of $N$.
+We sweep $N$ across values from $10^3$ to $\sim10^6$ (the full corpus); the
+full-corpus data points represent the large-$N$ limit of this dose-response.
+Distractors are reservoir-sampled in a single streaming pass over the corpus using
+a seeded RNG (seed~0), so results are deterministic and reproducible without
+storing the full index.
+
+\paragraph{Retrievers.} We evaluate two retrievers. The \emph{sparse} arm uses
+\texttt{bm25s}~\cite{lassance2024bm25s}, a Lucene-style BM25 implementation with
+$k_1{=}1.5$, $b{=}0.75$; these are the same hyperparameters as the per-question
+arm, though the underlying engine differs (pure-Python BM25 vs.\ \texttt{bm25s}).
+The \emph{dense} arm uses \texttt{all-MiniLM-L6-v2}
+(sentence-transformers~\cite{reimers2019sentence}), encoding passages once at
+index time and ranking query prefixes by cosine similarity. Both retrievers follow
+the same prefix protocol as the per-question arm: $t_{\mathrm{suf}}$ is the
+smallest $t$ such that some gold passage $d^\star$ appears in the top-$k$ list
+at prefix $q_{1:t}$, and $\phi_{\mathrm{suf}} = t^\star / n$ is the corresponding
+stabilization fraction.
+
 % ===================================================================== %
 \input{results.tex}
 % ===================================================================== %
