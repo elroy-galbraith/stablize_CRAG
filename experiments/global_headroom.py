@@ -11,7 +11,6 @@ the fallback_col parameter, enabling dual-schema L-sweep comparisons.
 from __future__ import annotations
 
 import csv
-from typing import Optional
 
 from stabilization import hidden_latency_ms
 
@@ -95,6 +94,7 @@ def main():
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
         with open(args.out, "w") as f:
             json.dump(summary, f, indent=2)
+            f.write("\n")
 
     for c in cells:
         print(f"{label}  L={c['L']}: streamable {c['streamable']}/{c['denom']} = {c['frac']}"

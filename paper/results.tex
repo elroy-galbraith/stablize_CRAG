@@ -255,11 +255,13 @@ hardest precisely in the large-tool-latency regime that motivates streaming RAG.
 Three caveats apply.  First, the global fractions use the full retrieval
 corpora (NQ ${\sim}$1M documents; FiQA ${\sim}$57k), \emph{not}
 gold-guaranteed subsamples; gold-guaranteed subsamples would inflate the
-fraction by construction and are not used here.  Second, the global
-denominator is restricted to queries whose gold passage is retrievable at
-some prefix (so a fair comparison to the per-question retrieved-gold
-slice); queries where gold is never retrieved are excluded from both
-denominators.  Third, global sufficiency uses the hard gold-in-top-$k$
+fraction by construction and are not used here.  Second, the two arms use different denominators: the global fraction is
+over queries whose gold is retrievable at some prefix, whereas the
+per-question fraction is over the full workload via the $t_{\mathrm{sc}}$
+fallback.  This asymmetry is conservative for our claim---the
+$t_{\mathrm{sc}}$ fallback lets stable-but-unverified top-1 retrievals
+count as streamable, inflating the per-question fraction, so the reported
+gap \emph{understates} the true penalty.  Third, global sufficiency uses the hard gold-in-top-$k$
 criterion, making $\theta$ implicit in the global arm; only the streamable
 threshold $\theta\cdot L$ is shared with the per-question arm.
 
@@ -282,7 +284,9 @@ Tool latency $L$ & Per-question CRAG & Global NQ ${\sim}$1M & Global FiQA ${\sim
 \end{tabular}
 \end{table}
 
-Two further patterns stand out. First,
+Turning now to the \emph{input-cadence} sweep (varying $\delta$ at fixed $L$,
+distinct from the tool-latency sweep in Table~\ref{tab:lsweep} above), two
+further patterns stand out. First,
 for small tool latency ($L\le300$\,ms) the constraint is essentially never binding:
 $82.6\%$ of queries are streamable regardless of cadence---the residual input time
 trivially covers a short tool call. Second, and confirming \textbf{H2}, when tool
