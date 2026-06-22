@@ -1,6 +1,16 @@
 \documentclass[11pt]{article}
 
-\usepackage[preprint]{acl}
+% ===================================================================== %
+% LAYOUT TOGGLE.  Default = single-column preprint (for arXiv).          %
+% To submit to ACL: uncomment the [ACL] line below, then comment out     %
+% every line tagged % [PREPRINT] (this block + \usepackage{hyperref} +   %
+% \bibliographystyle{acl_natbib} near \bibliography). acl.sty supplies    %
+% geometry, natbib, hyperref, the two-column layout, and the bib style.  %
+%\usepackage[preprint]{acl}                          % [ACL] two-column (review/preprint/final)
+\usepackage[margin=1in]{geometry}                    % [PREPRINT] single-column margins
+\usepackage{natbib}                                  % [PREPRINT] acl.sty loads this
+\renewcommand{\cite}{\citep}                         % [PREPRINT] \cite -> "(Author, Year)"
+% ===================================================================== %
 \usepackage{times}
 \usepackage{latexsym}
 \usepackage[T1]{fontenc}
@@ -10,10 +20,13 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{xcolor}
+\usepackage{hyperref}             % [PREPRINT] after natbib (\url + clickable refs); acl.sty loads its own
+\hypersetup{hidelinks}            % [PREPRINT] no colored boxes around links/cites
 
 \title{Tool-Intent Stabilization Is Operationalization-Dependent:\\
 A Cautionary Measurement Study of Streaming Retrieval-Augmented Generation}
 \author{Elroy Galbraith \\
+  SMG Lab \\
   \texttt{elroy.galbraith@gmail.com}}
 
 % ===================================================================== %
@@ -382,7 +395,7 @@ The per-question results above use $C_{\mathrm{perq}}$, each question's own
 candidate pool. To test whether the observed early-$\phi_{\mathrm{suf}}$ behaviour
 survives a realistic open-domain index, we add a second measurement condition
 that indexes all queries against a \emph{shared}, much larger corpus. We implement
-this in \texttt{experiments/global\_corpus.py}.
+this in \texttt{experiments/\allowbreak global\_corpus.py}.
 
 \paragraph{Benchmarks.} We use BEIR-NQ~\cite{kwiatkowski2019nq} and
 BEIR-FiQA~\cite{maia2018fiqa}, loaded from the BEIR HuggingFace
@@ -525,8 +538,7 @@ English QA set leaves open whether verb-final word order (e.g., Japanese or
 German) shifts $t_{\mathrm{suf}}$ under lexical but not dense retrieval,
 which would be a natural next step.
 
-% \bibliographystyle is set by acl.sty; redeclaring it triggers BibTeX's
-% "Illegal, another \bibstyle command" error.
+\bibliographystyle{acl_natbib}  % [PREPRINT] comment this when [ACL] is on (acl.sty sets it)
 \bibliography{refs}
 
 \end{document}
