@@ -11,8 +11,8 @@
 \usepackage{booktabs}
 \usepackage{xcolor}
 
-\title{When Does Streaming Tool Use Help?\\
-Characterizing Tool-Intent Stabilization in Streaming Retrieval-Augmented Generation}
+\title{Tool-Intent Stabilization Is Operationalization-Dependent:\\
+A Cautionary Measurement Study of Streaming Retrieval-Augmented Generation}
 \author{Anonymous}
 
 % ===================================================================== %
@@ -115,24 +115,31 @@ issuing retrieval queries in parallel with the user's still-arriving input, befo
 the utterance is complete. Speculation can only help, though, when the correct
 query becomes determinable before the user stops speaking or typing---a property of
 the query, not the system. We name and measure this property,
-\textbf{tool-intent stabilization}: the point in the input stream at which a
-speculative query's retrieval converges on the answer-bearing result. On the CRAG
-benchmark (\nSplitZero{} validation questions) we (i) characterize how
-stabilization is distributed across queries; (ii) derive a model-agnostic bound $H$
-on the share of tool latency hideable behind the remaining input, given tool
-latency $L$ and input cadence $\delta$; (iii) validate it against a working
-streaming pipeline; and (iv) ask which query properties predict early versus late
-stabilization. Stabilization is often early---though its magnitude is sensitive to
-how strictly the gold answer is grounded into passages (\S\ref{sec:robust}): on
-precisely-grounded questions median $\phi_{\mathrm{suf}}$ is $\phiSufCleanMed{}$
-rather than the \phiSufMed{} of the full retrieved-gold slice, so we report it as a
-range, not a point. At a realistic operating point a \streamPct{} streamable
-fraction of the benchmark admits latency hiding, and $H$ acts as a conservative
-aggregate floor that realized savings meet or exceed---though it does not predict
-savings query by query. Question type yields a statistically
-significant but small early/late split. The study needs no model training and runs
-on commodity CPU hardware; a dense-retriever replication confirms the
-early-stabilization effect is not a BM25 lexical artifact.
+\textbf{tool-intent stabilization} (TIS): the point in the input stream at which a
+speculative query's retrieval converges on the answer-bearing result.
+
+The measured value of TIS depends critically on the retrieval corpus.
+Against the per-question candidate pool that CRAG ships, stabilization looks early
+(median $\phi_{\mathrm{suf}}=\phiSufMed$); against a realistic global corpus it is
+late (median up to $\phiSufGnqOneM$ on NQ at ${\sim}1$M documents), grows later
+with corpus size, and holds for both sparse and dense retrieval (FiQA: BM25
+$\phiSufGfiqaBm$, dense $\phiSufGfiqaDe$).
+
+This corpus-dependence has a direct consequence for the hideable-latency headroom,
+and the gap grows with tool latency. At a large tool latency ($L{=}2500$ ms, the
+regime streaming RAG targets) the streamable fraction falls from \sfPqTwentyfive{}
+(per-question corpus) to \sfNqTwentyfive{} (global NQ)---whereas at small tool
+latency ($L{=}600$ ms) long queries still capture meaningful headroom in both
+conditions.
+
+The TIS framework ($t_{\mathrm{sc}}$, $t_{\mathrm{suf}}$, $\phi$, and the bound
+$H$) is sound; the caution is to measure TIS against the corpus the deployed system
+retrieves over. On the CRAG benchmark (\nSplitZero{} validation questions) we
+(i) characterize how stabilization is distributed; (ii) derive a model-agnostic
+bound $H$ on the latency hideable behind the remaining input; (iii) validate $H$
+against a working pipeline; and (iv) identify query properties that predict early
+versus late stabilization. The study needs no model training and runs on commodity
+CPU hardware.
 \end{abstract}
 
 \section{Introduction}
