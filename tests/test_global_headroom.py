@@ -3,7 +3,7 @@ from global_headroom import streamable_fraction, load_rows, sweep
 
 
 def _write(path, fieldnames, rows):
-    with open(path, "w", newline="") as f:
+    with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames); w.writeheader(); w.writerows(rows)
 
 

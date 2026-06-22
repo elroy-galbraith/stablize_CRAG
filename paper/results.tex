@@ -70,8 +70,9 @@ topical coverage and query style---BM25 reaches median $\phi_{\mathrm{suf}} =
 (\phiSufGnqTenK{}). Late stabilization holds across benchmarks.
 
 \paragraph{(3) Retriever-general.} On the identical FiQA gold+10k corpus, a dense
-bi-encoder (\texttt{all-MiniLM-L6-v2}) yields median $\phi_{\mathrm{suf}} =
-\phiSufGfiqaDe{} \approx \phiSufGfiqaBm{}$ (BM25). The dense retriever surfaces
+bi-encoder (\texttt{all-MiniLM-L6-v2}) yields
+median $\phi_{\mathrm{suf}} = \phiSufGfiqaDe{} \approx \phiSufGfiqaBm{}$ (BM25).
+The dense retriever surfaces
 gold for \emph{more} queries (\nGfiqaDe{} vs.\ \nGfiqaBm{} groundable questions):
 it is a better retriever. But it reaches gold at the same late stabilization
 point. Dense retrieval thus \emph{generalizes} the artifact rather than rescuing
@@ -265,7 +266,7 @@ gap \emph{understates} the true penalty.  Third, global sufficiency uses the har
 criterion, making $\theta$ implicit in the global arm; only the streamable
 threshold $\theta\cdot L$ is shared with the per-question arm.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Streamable fraction (percent of queries that can hide $\ge\theta L$
 of tool latency) vs.\ $L$ for the per-question CRAG pool and two global
@@ -282,7 +283,7 @@ Tool latency $L$ & Per-question CRAG & Global NQ ${\sim}$1M & Global FiQA ${\sim
 2500\,ms & \sfPqTwentyfive{} & \sfNqTwentyfive{} & \sfFiqaTwentyfive{} \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 Turning now to the \emph{input-cadence} sweep (varying $\delta$ at fixed $L$,
 distinct from the tool-latency sweep in Table~\ref{tab:lsweep} above), two

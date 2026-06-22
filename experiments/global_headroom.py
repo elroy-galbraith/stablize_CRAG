@@ -10,7 +10,10 @@ the fallback_col parameter, enabling dual-schema L-sweep comparisons.
 """
 from __future__ import annotations
 
+import argparse
 import csv
+import json
+import os
 
 from stabilization import hidden_latency_ms
 
@@ -23,7 +26,7 @@ def load_rows(csv_path: str, t_col: str = "t_suf_global", fallback_col=None) -> 
     the source schema.
     """
     out = []
-    with open(csv_path, newline="") as f:
+    with open(csv_path, newline="", encoding="utf-8-sig") as f:
         for r in csv.DictReader(f):
             t = r.get(t_col)
             if t in (None, "") and fallback_col:
@@ -58,7 +61,6 @@ def sweep(rows: list, Ls, delta_wps: float, theta: float) -> list:
 
 
 def main():
-    import argparse, json, os
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", required=True)
     ap.add_argument("--t-col", default="t_suf_global",
@@ -92,7 +94,7 @@ def main():
     }
     if args.out:
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-        with open(args.out, "w") as f:
+        with open(args.out, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
             f.write("\n")
 
