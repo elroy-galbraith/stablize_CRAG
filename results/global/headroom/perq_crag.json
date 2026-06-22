@@ -1,0 +1,35 @@
+{
+  "params": {
+    "csv": "results/stab_k3.csv",
+    "label": "perq_crag",
+    "t_col": "t_suf",
+    "fallback_col": "t_sc",
+    "Ls": [
+      600.0,
+      1500.0,
+      2500.0
+    ],
+    "delta": 3.0,
+    "theta": 0.8
+  },
+  "sweep": [
+    {
+      "L": 600.0,
+      "streamable": 1013,
+      "denom": 1371,
+      "frac": 0.7389
+    },
+    {
+      "L": 1500.0,
+      "streamable": 747,
+      "denom": 1371,
+      "frac": 0.5449
+    },
+    {
+      "L": 2500.0,
+      "streamable": 537,
+      "denom": 1371,
+      "frac": 0.3917
+    }
+  ]
+}

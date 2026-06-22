@@ -1,0 +1,35 @@
+{
+  "params": {
+    "csv": "results/global/confirm/fiqa_bm25.csv",
+    "label": "fiqa_full",
+    "t_col": "t_suf_global",
+    "fallback_col": null,
+    "Ls": [
+      600.0,
+      1500.0,
+      2500.0
+    ],
+    "delta": 3.0,
+    "theta": 0.8
+  },
+  "sweep": [
+    {
+      "L": 600.0,
+      "streamable": 169,
+      "denom": 250,
+      "frac": 0.676
+    },
+    {
+      "L": 1500.0,
+      "streamable": 122,
+      "denom": 250,
+      "frac": 0.488
+    },
+    {
+      "L": 2500.0,
+      "streamable": 77,
+      "denom": 250,
+      "frac": 0.308
+    }
+  ]
+}
