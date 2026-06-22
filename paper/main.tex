@@ -159,21 +159,32 @@ decisive term arrives last (``who makes the console called the
 \emph{PlayStation}''), no early speculative query can retrieve the right evidence,
 and the latency win collapses to zero regardless of system quality. If the
 decisive term arrives early, almost the entire tool latency can be hidden behind
-the remaining input. We initially expected these two regimes to show up as a
-\emph{bimodal} distribution of stabilization; empirically (\S5.1) the picture is
-better described as a large early-stabilizing mass with a thin late tail---the
-early case is common and the late case is the rarer failure mode---and we report
-the distribution as found rather than as hypothesized.
+the remaining input.
+
+We initially measured tool-intent stabilization against the per-question candidate
+pool that CRAG ships with each query, and that measurement made stabilization look
+early (median $\phi_{\mathrm{suf}}=\phiSufMed$).  Measuring instead against a
+realistic global corpus---the corpus the deployed system actually retrieves
+over---reveals that early picture to be largely an artifact of the
+per-question pool: stabilization is in fact \emph{late} (median $\phi_{\mathrm{suf}}$
+up to $\phiSufGnqOneM$ on NQ at ${\sim}1$M documents), grows later with corpus
+size, and holds for both sparse and dense retrieval.  This corpus-dependence is
+the finding this paper is organized around.
 
 We study this directly. By characterizing tool-intent stabilization as a
-measurable, query-intrinsic quantity, we obtain (i) a model-agnostic
-\emph{aggregate} bound on the share of tool latency that can be hidden behind
-ongoing input, computable \emph{before} any system is built; (ii) a principled
-account of the failure mode; (iii) a coarse build/skip signal---weak at the level
-of an individual query---for whether a learned trigger is worth its cost; and
-(iv) results that transfer across text and speech because the quantity is
-modality-agnostic. Our contribution is measurement and analysis rather than a new
-system.
+measurable, query-intrinsic quantity, we obtain: (i) a model-agnostic
+\emph{aggregate} bound $H$ on the share of tool latency that can be hidden behind
+ongoing input, computable \emph{before} any system is built, but
+\emph{operationalization-sensitive}---the corpus the bound is evaluated on
+determines how optimistic or conservative it is; (ii) a measurement caution
+backed by global-corpus evidence---dose-response across corpus sizes, two
+benchmarks (NQ and FiQA), and two retriever families (BM25 and dense)---showing
+that per-question pools substantially over-estimate real-world headroom, and that
+headroom shrinks as tool latency grows; (iii) a principled account of the failure
+mode (late stabilization) and a coarse build/skip signal for whether a learned
+trigger is worth its compute cost; and (iv) results that transfer across text and
+speech because the quantity is modality-agnostic.  Our contribution is
+measurement and analysis rather than a new system.
 
 \section{Background and Related Work}
 Retrieval-Augmented Generation~\cite{lewis2020rag} grounds generation in
