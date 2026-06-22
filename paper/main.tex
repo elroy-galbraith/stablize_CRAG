@@ -80,6 +80,30 @@ Characterizing Tool-Intent Stabilization in Streaming Retrieval-Augmented Genera
 \newcommand{\phiSufDense}{0.31}      % phi_suf mean, dense (vs 0.26) %
 \newcommand{\phiSufDenseMed}{0.22}   % phi_suf median, dense (vs 0.14) %
 \newcommand{\rhoDenseType}{0.79}     % Spearman(BM25,dense) over phi_suf type ranking %
+% ---- Global-corpus arm (Paper 1 v2 spine). Sources named per line. ----
+% phi_suf dose-response + retriever-generality (gold-guaranteed subsamples)
+\newcommand{\phiSufGnqK}{0.571}      % NQ gold+1k median phi_suf; results/global/confirm/nq_bm25_1000.summary.json
+\newcommand{\phiSufGnqTenK}{0.625}   % NQ gold+10k median; nq_bm25_10000.summary.json
+\newcommand{\phiSufGnqOneM}{0.75}    % NQ ~1M-prefix median; nq_tsuf.1m.summary.json
+\newcommand{\phiSufGfiqaBm}{0.636}   % FiQA gold+10k BM25 median; fiqa_bm25_10k.summary.json
+\newcommand{\phiSufGfiqaDe}{0.625}   % FiQA gold+10k dense median; fiqa_dense_10k.summary.json
+\newcommand{\tSufOneGnqOneM}{0.7\%}  % NQ ~1M t_suf==1 rate; nq_tsuf.1m.summary.json
+\newcommand{\tSufOneGfiqaBm}{2.8\%}  % FiQA 10k BM25 t_suf==1; fiqa_bm25_10k.summary.json
+\newcommand{\nGfiqaBm}{364}          % FiQA 10k BM25 groundable n; fiqa_bm25_10k.summary.json
+\newcommand{\nGfiqaDe}{481}          % FiQA 10k dense groundable n; fiqa_dense_10k.summary.json
+% L-dependent headroom: streamable fraction, delta=3, theta=0.8 (full corpora)
+% per-question CRAG (v1): results/global/headroom/perq_crag.json
+\newcommand{\sfPqSix}{73.9\%}        % L=600  (matches v1 \streamPct)
+\newcommand{\sfPqFifteen}{54.5\%}    % L=1500
+\newcommand{\sfPqTwentyfive}{39.2\%} % L=2500
+% global NQ ~1M: results/global/headroom/nq_1m.json
+\newcommand{\sfNqSix}{58.6\%}        % L=600
+\newcommand{\sfNqFifteen}{27.2\%}    % L=1500
+\newcommand{\sfNqTwentyfive}{9.2\%}  % L=2500
+% global FiQA full ~57k: results/global/headroom/fiqa_full.json
+\newcommand{\sfFiqaSix}{67.6\%}      % L=600
+\newcommand{\sfFiqaFifteen}{48.8\%}  % L=1500
+\newcommand{\sfFiqaTwentyfive}{30.8\%} % L=2500
 % ===================================================================== %
 
 \begin{document}
