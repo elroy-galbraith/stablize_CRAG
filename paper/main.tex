@@ -249,10 +249,18 @@ $d^\star$ for the gold answer-bearing document.
 such that for all $s \in \{t, \ldots, n\}$, $d_s = d_n$: every prefix from $t$
 onward retrieves the same top document as the full query.
 
-\paragraph{Sufficiency stabilization $t_{\mathrm{suf}}$.} the smallest $t$ such
-that $d^\star \in \mathrm{top\text{-}}k(R(q_{1:t}))$: the prefix already surfaces
-the gold evidence. This is the operationally meaningful notion, since the full
-query itself may retrieve imperfectly.
+\paragraph{Sufficiency stabilization $t_{\mathrm{suf}}(q; C)$.} the smallest $t$
+such that $d^\star \in \mathrm{top\text{-}}k(R(q_{1:t}; C))$: retrieval over
+corpus $C$ already surfaces the gold evidence in the prefix. This is the
+operationally meaningful notion, since the full query itself may retrieve
+imperfectly. The corpus $C$ is an explicit parameter: our v1 results are
+$t_{\mathrm{suf}}(\cdot;\,C_{\mathrm{perq}})$, where $C_{\mathrm{perq}}$ is
+CRAG's per-question candidate pool; the global-corpus arm reports
+$t_{\mathrm{suf}}(\cdot;\,C_{\mathrm{global}})$ over a realistic open-domain
+index. Because $C_{\mathrm{perq}}$ is far smaller and topically filtered,
+$t_{\mathrm{suf}}(\cdot;\,C_{\mathrm{perq}})$ systematically under-estimates
+how late stabilization actually occurs in deployment; all sufficiency results
+in this paper specify which corpus is in use.
 
 \paragraph{Stabilization fraction $\phi = t^\star/n \in (0,1]$,} reported for both
 $t_{\mathrm{sc}}$ and $t_{\mathrm{suf}}$. Lower $\phi$ means earlier stabilization
@@ -281,8 +289,11 @@ least 80\% of tool latency). The streamable fraction of a workload is the centra
 deployment-relevant statistic.
 
 \paragraph{Research questions.} We address four pre-registered questions.
-\textbf{RQ1} asks how $\phi$ is distributed across queries; we expect a bimodal
-shape with an early-stabilizing mass and a late-stabilizing tail.
+\textbf{RQ1} asks how $\phi$ is distributed across queries; under the
+per-question operationalization ($C_{\mathrm{perq}}$) the distribution is
+right-skewed with an early-stabilizing mass and a thin late tail---and a central
+question is whether that early mass is intrinsic to the queries or an artifact of
+the small, topically-filtered corpus, which the global-corpus arm answers.
 \textbf{RQ2} asks what fraction of queries admit latency hiding as $L$, $\delta$,
 and $\theta$ vary; we expect that for large $L$ the binding constraint is the
 residual input time $(n-t^\star)/\delta$, so a \emph{slower} cadence
@@ -322,7 +333,7 @@ evidence arrives. This biases $t_{\mathrm{suf}}$, and thus $\phi_{\mathrm{suf}}$
 early. Multi-token answers, which require a contiguous
 substring match, are far less prone to this. We therefore read $\phi_{\mathrm{suf}}$
 as a lower bound on stabilization time on the groundable subset, and treat the
-early-stabilization finding as directionally robust rather than exact.
+per-question early-stabilization finding as directionally robust rather than exact within $C_{\mathrm{perq}}$.
 
 To bound the population-selection bias this strictness induces, we also run a
 \emph{relaxed} grounding arm (\S\ref{sec:robust}): for multi-token answers it accepts
