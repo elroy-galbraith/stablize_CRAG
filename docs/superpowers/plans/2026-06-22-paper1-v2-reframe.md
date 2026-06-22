@@ -177,31 +177,157 @@ git commit -m "feat: global_headroom.py — streamable fraction under the global
 
 Run each (from `experiments/`), at the central cell L=600, δ=3, θ=0.8:
 
-```bash
-cd experiments
-for pair in \
-  "nq_bm25_1000:../results/global/confirm/nq_bm25_1000.csv" \
-  "nq_bm25_10000:../results/global/confirm/nq_bm25_10000.csv" \
-  "nq_1m:../results/global/nq_tsuf.1m.csv" \
-  "fiqa_bm25_10k:../results/global/confirm/fiqa_bm25_10k.csv" \
-  "fiqa_dense_10k:../results/global/confirm/fiqa_dense_10k.csv"; do
-  label="${pair%%:*}"; csv="${pair##*:}"
-  uv run python global_headroom.py --csv "$csv" --L 600 --delta 3 --theta 0.8 \
-    --label "$label" --out "../results/global/headroom/${label}.summary.json"
-done
+This task has two parts: (2a) TDD-enhance `experiments/global_headroom.py` to sweep multiple L values and read either CSV schema; (2b) produce the L-sweep table artifact and run the sanity check.
+
+**Why the change (read first):** the Task-2 sanity gate fired. The binary streamable fraction does NOT collapse at v1's L=600 — NQ/FiQA queries are long enough to hide a small 600 ms tool call, and the gold-guaranteed *subsamples* even exceed v1. The honest result is an **L-sweep**: the global fraction is ≤ per-question at every L and the gap widens with L (collapsing to ≈0.09 at L=2500, the paper's own `fuse_ms`). See spec §7.
+
+**New interfaces (extend Task 1's file):**
+- `load_rows(csv_path, t_col="t_suf_global", fallback_col=None) -> list[dict]` — each row `{"qid", "n_words": int, "t_star": int|None}`. `t_star = int(row[t_col])` if that cell is non-empty, else `int(row[fallback_col])` if `fallback_col` is given and non-empty, else `None`. (Renames the per-row key from `t_suf_global` to the schema-neutral `t_star`; update Task 1's test accordingly.)
+- `streamable_fraction(rows, L_ms, delta_wps, theta) -> (int,int)` — unchanged logic, now reads `r["t_star"]`.
+- `sweep(rows, Ls, delta_wps, theta) -> list[dict]` — `[{"L": L, "streamable": s, "denom": d, "frac": round(s/d,4)}]` for each `L` in `Ls`.
+
+- [ ] **Step 1 (2a): Write the failing tests for the enhancement**
+
+Replace `tests/test_global_headroom.py` with (keeps the basic case, adds dual-schema + sweep; note `t_star` key):
+
+```python
+import csv, os
+from global_headroom import streamable_fraction, load_rows, sweep
+
+
+def _write(path, fieldnames, rows):
+    with open(path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fieldnames); w.writeheader(); w.writerows(rows)
+
+
+def test_load_rows_global_schema(tmp_path):
+    p = os.path.join(tmp_path, "g.csv")
+    _write(p, ["qid", "n_words", "t_suf_global", "phi_suf_global"], [
+        {"qid": "a", "n_words": 10, "t_suf_global": 2, "phi_suf_global": 0.2},
+        {"qid": "c", "n_words": 5, "t_suf_global": "", "phi_suf_global": ""},
+    ])
+    rows = load_rows(p)
+    assert rows[0]["t_star"] == 2 and rows[0]["n_words"] == 10
+    assert rows[1]["t_star"] is None
+
+
+def test_load_rows_perq_schema_with_fallback(tmp_path):
+    # per-question CRAG schema: prefer t_suf, fall back to t_sc
+    p = os.path.join(tmp_path, "p.csv")
+    _write(p, ["interaction_id", "n_words", "t_sc", "t_suf"], [
+        {"interaction_id": "a", "n_words": 8, "t_sc": 3, "t_suf": 5},   # t_suf present -> 5
+        {"interaction_id": "b", "n_words": 8, "t_sc": 4, "t_suf": ""},  # falls back to t_sc -> 4
+        {"interaction_id": "c", "n_words": 8, "t_sc": "", "t_suf": ""}, # both empty -> None
+    ])
+    rows = load_rows(p, t_col="t_suf", fallback_col="t_sc")
+    assert [r["t_star"] for r in rows] == [5, 4, None]
+
+
+def test_streamable_fraction_basic(tmp_path):
+    # n=10,t=2 -> H=min(600,2667)=600>=480 streamable; n=10,t=10 -> H=0 not; empty -> excluded
+    p = os.path.join(tmp_path, "g.csv")
+    _write(p, ["qid", "n_words", "t_suf_global"], [
+        {"qid": "a", "n_words": 10, "t_suf_global": 2},
+        {"qid": "b", "n_words": 10, "t_suf_global": 10},
+        {"qid": "c", "n_words": 10, "t_suf_global": ""},
+    ])
+    s, d = streamable_fraction(load_rows(p), L_ms=600, delta_wps=3.0, theta=0.8)
+    assert (s, d) == (1, 2)
+
+
+def test_sweep_returns_one_cell_per_L(tmp_path):
+    p = os.path.join(tmp_path, "g.csv")
+    _write(p, ["qid", "n_words", "t_suf_global"], [
+        {"qid": "a", "n_words": 12, "t_suf_global": 9},  # residual 3w=1000ms
+    ])
+    cells = sweep(load_rows(p), [600, 1500, 2500], delta_wps=3.0, theta=0.8)
+    assert [c["L"] for c in cells] == [600, 1500, 2500]
+    # H=min(L,1000); streamable iff 1000>=0.8L -> L<=1250: true@600, false@1500/2500
+    assert cells[0]["frac"] == 1.0 and cells[1]["frac"] == 0.0 and cells[2]["frac"] == 0.0
 ```
 
-Expected: five printed lines like `nq_1m: streamable 1373/... = 0.xx`. Record each `streamable_fraction`.
+- [ ] **Step 2: Run tests, verify they fail**
 
-- [ ] **Step 2: Sanity-check against the per-question baseline**
+Run: `uv run --extra dev python -m pytest tests/test_global_headroom.py -v`
+Expected: FAIL — `load_rows()` got unexpected keyword / `sweep` not defined / `KeyError: 't_star'`.
 
-The v1 per-question streamable fraction is `\streamPct{}` = 73.9%. Confirm the global fractions are **lower** (the headroom collapse the spec predicts). If any global fraction is ≥ 73.9%, STOP and re-examine — that would contradict the thesis and must be understood before writing prose.
+- [ ] **Step 3: Implement the enhancement**
 
-- [ ] **Step 3: Commit the headroom artifacts**
+Edit `experiments/global_headroom.py`:
+
+```python
+def load_rows(csv_path: str, t_col: str = "t_suf_global", fallback_col=None) -> list:
+    out = []
+    with open(csv_path, newline="") as f:
+        for r in csv.DictReader(f):
+            t = r.get(t_col)
+            if t in (None, "") and fallback_col:
+                t = r.get(fallback_col)
+            out.append({
+                "qid": r.get("qid") or r.get("interaction_id"),
+                "n_words": int(r["n_words"]),
+                "t_star": int(t) if t not in (None, "") else None,
+            })
+    return out
+
+
+def streamable_fraction(rows: list, L_ms: float, delta_wps: float, theta: float):
+    streamable = denom = 0
+    for r in rows:
+        if r["t_star"] is None:
+            continue
+        denom += 1
+        if hidden_latency_ms(r["t_star"], r["n_words"], L_ms, delta_wps) >= theta * L_ms:
+            streamable += 1
+    return streamable, denom
+
+
+def sweep(rows: list, Ls, delta_wps: float, theta: float) -> list:
+    out = []
+    for L in Ls:
+        s, d = streamable_fraction(rows, L, delta_wps, theta)
+        out.append({"L": L, "streamable": s, "denom": d, "frac": round(s / d, 4) if d else None})
+    return out
+```
+
+Update `main()` to: add `--t-col` (default `t_suf_global`), `--fallback-col` (default `None`), change `--L` to accept a comma list (default `"600,1500,2500"`), call `sweep`, and write `{"params":{...}, "sweep": [...]}` to `--out`. Print one line per L.
+
+- [ ] **Step 4: Run tests, verify pass + full suite**
+
+Run: `uv run --extra dev python -m pytest tests/test_global_headroom.py -v && uv run --extra dev python -m pytest tests/ -q`
+Expected: headroom tests pass; no regressions (the 5 `test_global_corpus` failures from missing `bm25s` under `--extra dev` are pre-existing and unrelated).
+
+- [ ] **Step 5: Commit the enhancement**
+
+```bash
+git add experiments/global_headroom.py tests/test_global_headroom.py
+git commit -m "feat: global_headroom L-sweep + dual-schema (per-question fallback) for the L-dependent headroom table"
+```
+
+- [ ] **Step 6 (2b): Produce the L-sweep table artifact**
+
+```bash
+cd /home/elroy/projects/stablize_CRAG
+uv run python experiments/global_headroom.py --csv results/stab_k3.csv \
+  --t-col t_suf --fallback-col t_sc --L 600,1500,2500 --delta 3 --theta 0.8 \
+  --label perq_crag --out results/global/headroom/perq_crag.json
+uv run python experiments/global_headroom.py --csv results/global/nq_tsuf.1m.csv \
+  --L 600,1500,2500 --delta 3 --theta 0.8 --label nq_1m --out results/global/headroom/nq_1m.json
+uv run python experiments/global_headroom.py --csv results/global/confirm/fiqa_bm25.csv \
+  --L 600,1500,2500 --delta 3 --theta 0.8 --label fiqa_full --out results/global/headroom/fiqa_full.json
+```
+
+Expected (must match the spec §7 table): perq_crag 0.739/0.545/0.392; nq_1m 0.586/0.272/0.092; fiqa_full 0.676/0.488/0.308.
+
+- [ ] **Step 7: Sanity check (revised)**
+
+Confirm at EACH L the global fraction is ≤ the per-question fraction, and the per-question−global gap is non-decreasing in L. If any global cell EXCEEDS per-question at the same L, STOP (the gold-guaranteed subsamples do this — they must NOT be used here; only the full corpora above).
+
+- [ ] **Step 8: Commit the artifacts**
 
 ```bash
 git add results/global/headroom/
-git commit -m "results: global-corpus streamable fraction (headroom collapse) at L=600,d=3,theta=0.8"
+git commit -m "results: L-dependent streamable fraction (per-question vs full-corpus global), L in {600,1500,2500}"
 ```
 
 ---
@@ -212,15 +338,16 @@ git commit -m "results: global-corpus streamable fraction (headroom collapse) at
 - Modify: `paper/main.tex:18-83` (the `RESULTS MACROS` block)
 
 **Interfaces:**
-- Consumes: the JSON summaries in `results/global/confirm/`, `results/global/nq_tsuf.1m.summary.json`, and `results/global/headroom/` (Task 2).
-- Produces: new `\newcommand` macros used by Tasks 5–6. Names below are the contract; later tasks cite exactly these.
+- Consumes: JSON summaries in `results/global/confirm/`, `results/global/nq_tsuf.1m.summary.json`, and the L-sweep JSONs in `results/global/headroom/` (Task 2 Step 6).
+- Produces: new `\newcommand` macros used by Tasks 5, 8, 9. Names below are the contract; later tasks cite exactly these.
 
 - [ ] **Step 1: Add the global macros**
 
-Insert into the macros block (keep the one-number-per-macro + provenance-comment style). Fill the streamable values from Task 2's outputs (shown as `<...>`); the φ_suf / t_suf=1 values are the medians/rates already in the named JSON files:
+Insert into the macros block (keep the one-number-per-macro + provenance-comment style). The φ_suf / t_suf=1 values are medians/rates from the named confirm JSONs; the streamable values are from the Task-2 L-sweep JSONs:
 
 ```latex
 % ---- Global-corpus arm (Paper 1 v2 spine). Sources named per line. ----
+% phi_suf dose-response + retriever-generality (gold-guaranteed subsamples)
 \newcommand{\phiSufGnqK}{0.571}      % NQ gold+1k median phi_suf; results/global/confirm/nq_bm25_1000.summary.json
 \newcommand{\phiSufGnqTenK}{0.625}   % NQ gold+10k median; nq_bm25_10000.summary.json
 \newcommand{\phiSufGnqOneM}{0.75}    % NQ ~1M-prefix median; nq_tsuf.1m.summary.json
@@ -230,8 +357,19 @@ Insert into the macros block (keep the one-number-per-macro + provenance-comment
 \newcommand{\tSufOneGfiqaBm}{2.8\%}  % FiQA 10k BM25 t_suf==1; fiqa_bm25_10k.summary.json
 \newcommand{\nGfiqaBm}{364}          % FiQA 10k BM25 groundable n; fiqa_bm25_10k.summary.json
 \newcommand{\nGfiqaDe}{481}          % FiQA 10k dense groundable n; fiqa_dense_10k.summary.json
-\newcommand{\streamPctGnqOneM}{<fill>\%}   % global streamable frac, NQ ~1M; results/global/headroom/nq_1m.summary.json
-\newcommand{\streamPctGfiqaBm}{<fill>\%}   % global streamable frac, FiQA 10k BM25; headroom/fiqa_bm25_10k.summary.json
+% L-dependent headroom: streamable fraction, delta=3, theta=0.8 (full corpora)
+% per-question CRAG (v1): results/global/headroom/perq_crag.json
+\newcommand{\sfPqSix}{73.9\%}        % L=600  (matches v1 \streamPct)
+\newcommand{\sfPqFifteen}{54.5\%}    % L=1500
+\newcommand{\sfPqTwentyfive}{39.2\%} % L=2500
+% global NQ ~1M: results/global/headroom/nq_1m.json
+\newcommand{\sfNqSix}{58.6\%}        % L=600
+\newcommand{\sfNqFifteen}{27.2\%}    % L=1500
+\newcommand{\sfNqTwentyfive}{9.2\%}  % L=2500
+% global FiQA full ~57k: results/global/headroom/fiqa_full.json
+\newcommand{\sfFiqaSix}{67.6\%}      % L=600
+\newcommand{\sfFiqaFifteen}{48.8\%}  % L=1500
+\newcommand{\sfFiqaTwentyfive}{30.8\%} % L=2500
 ```
 
 - [ ] **Step 2: Verify each macro value against its source file**
@@ -250,7 +388,18 @@ print("fiqaDE", json.load(open("results/global/confirm/fiqa_dense_10k.summary.js
 PY
 ```
 
-Expected: prints match the macro values (0.571, 0.625, 0.75, FiQA BM `{phi_suf_median:0.6364, t_suf_eq_1_rate:0.0275, n:364}`, FiQA dense `{phi_suf_median:0.625, n:481, t_suf_eq_1_rate:0.0146}`). Adjust any macro that disagrees (e.g. round 0.6364 → 0.636).
+Expected: prints match the macro values (0.571, 0.625, 0.75, FiQA BM `{phi_suf_median:0.6364, t_suf_eq_1_rate:0.0275, n:364}`, FiQA dense `{phi_suf_median:0.625, n:481, t_suf_eq_1_rate:0.0146}`). Adjust any macro that disagrees (e.g. round 0.6364 → 0.636). Then verify the headroom L-sweep macros against the Task-2 JSONs:
+
+```bash
+python3 - <<'PY'
+import json
+for lab in ("perq_crag","nq_1m","fiqa_full"):
+    s=json.load(open(f"results/global/headroom/{lab}.json"))["sweep"]
+    print(lab, {c["L"]: c["frac"] for c in s})
+PY
+```
+
+Expected: `perq_crag {600:0.739,1500:0.545,2500:0.392}`, `nq_1m {600:0.586,1500:0.272,2500:0.092}`, `fiqa_full {600:0.676,1500:0.488,2500:0.308}` — matching `\sfPq*`, `\sfNq*`, `\sfFiqa*` (as percentages).
 
 - [ ] **Step 3: Commit**
 
@@ -267,7 +416,7 @@ git commit -m "paper(v2): add global-corpus results macros with provenance"
 - Modify: `paper/main.tex:14-15` (title), `paper/main.tex:88-112` (abstract)
 
 **Interfaces:**
-- Consumes: macros from Task 3 (`\phiSufGnqOneM`, `\phiSufMed`, `\phiSufGfiqaDe`, `\phiSufGfiqaBm`, `\streamPctGnqOneM`, `\streamPct`).
+- Consumes: macros from Task 3 (`\phiSufGnqOneM`, `\phiSufMed`, `\phiSufGfiqaDe`, `\phiSufGfiqaBm`, `\sfPqTwentyfive`, `\sfNqTwentyfive`, `\streamPct`).
 
 - [ ] **Step 1: Replace the title**
 
@@ -285,7 +434,7 @@ A Cautionary Measurement Study of Streaming Retrieval-Augmented Generation}
 Replace the body of the `abstract` environment (lines 89–111) with prose that makes these claims, in this order, citing the macros:
 1. Streaming RAG hides tool latency only when the query stabilizes before input ends — a property we name and measure (tool-intent stabilization), keep.
 2. **The measured value depends on the retrieval corpus.** Against a per-question candidate pool (as CRAG ships) stabilization looks early (median $\phi_{\mathrm{suf}}=\phiSufMed$); against a realistic global corpus it is late (median up to $\phiSufGnqOneM$), grows later with corpus size, and holds for both sparse and dense retrieval (FiQA: BM25 $\phiSufGfiqaBm$, dense $\phiSufGfiqaDe$).
-3. **Consequence:** the hideable-latency headroom largely collapses — the per-question streamable fraction $\streamPct$ drops to $\streamPctGnqOneM$ under the global corpus.
+3. **Consequence:** the hideable-latency headroom shrinks under the global corpus, and the gap grows with tool latency — at a large tool latency ($L{=}2500$ ms, the regime streaming RAG targets) the streamable fraction falls from $\sfPqTwentyfive$ (per-question) to $\sfNqTwentyfive$ (global NQ). (Do not claim a collapse at small $L$ — at $L{=}600$ long queries still hide it.)
 4. The TIS framework ($t_{\mathrm{sc}}$, $t_{\mathrm{suf}}$, $\phi$, the bound $H$) is sound; the caution is to measure TIS against the corpus the deployed system retrieves over.
 5. Runs on commodity CPU, needs no training, keep.
 
@@ -400,7 +549,7 @@ cd .. && git add paper/results.tex && git commit -m "paper(v2): new results spin
 - Modify: `paper/results.tex:26` (RQ1 heading + framing), `:113-170` (RQ2), `:171-245` (RQ3), `:246-338` (Robustness)
 
 **Interfaces:**
-- Consumes: `\streamPct`, `\streamPctGnqOneM`, `\streamPctGfiqaBm` from Task 3.
+- Consumes: `\streamPct` and the L-sweep macros `\sfPq*`, `\sfNq*`, `\sfFiqa*` from Task 3.
 
 - [ ] **Step 1: Add the per-question-view framing**
 
@@ -408,7 +557,7 @@ After the new spine subsection, add a one-paragraph bridge: "The remainder of th
 
 - [ ] **Step 2: RQ2 — report the global streamable fraction side-by-side**
 
-In RQ2 (`:113-170`), after the existing `\streamPct` result, add a sentence + (optionally) two table rows: under the global corpus the streamable fraction falls to `\streamPctGnqOneM` (NQ ~1M) / `\streamPctGfiqaBm` (FiQA 10k BM25), at the same $L{=}600$, $\delta{=}3$, $\theta{=}0.8$. State the comparison caveat: the global denominator is queries whose gold is retrievable at some prefix, and global sufficiency is the hard gold-in-top-$k$ criterion (so $\theta$ is implicit in the global arm; only the streamable threshold $\theta\cdot L$ is shared).
+In RQ2 (`:113-170`), after the existing `\streamPct` result, add the **L-sweep table** (booktabs), columns *Tool latency $L$ | per-question CRAG | global NQ ~1M | global FiQA ~57k*, rows $L\in\{600,1500,2500\}$ ms, cells from `\sfPq*`/`\sfNq*`/`\sfFiqa*`. Prose: the streamable fraction declines with $L$ for all arms (mechanical); the global fraction is $\le$ per-question at every $L$ and the **gap widens with $L$** — at $L{=}600$ long queries still hide a small tool call ($\sfNqSix$ vs $\sfPqSix$), but at $L{=}2500$ ms (the paper's own calibrated `fuse_ms`$\approx\fuseMs$) the global fraction collapses to $\sfNqTwentyfive$ vs per-question's $\sfPqTwentyfive$. So the artifact bites precisely in the large-tool-latency regime streaming RAG targets. **Do not write a single-number "73.9% → X%" collapse** — it is false at small $L$. Caveats to state: use full corpora (the gold-guaranteed subsamples inflate the fraction and are NOT used here); the global denominator is queries whose gold is retrievable at some prefix; global sufficiency is the hard gold-in-top-$k$ criterion (so $\theta$ is implicit in the global arm — only the streamable threshold $\theta\cdot L$ is shared).
 
 - [ ] **Step 3: RQ3 — scope it explicitly**
 
@@ -497,6 +646,8 @@ git add -A && git commit -m "paper(v2): final verification — traceability + cl
 - Delete the dense "not a BM25 artifact" claim (spec Global Constraint) → Task 4 Step 2, Task 9 Step 4, Task 11 Step 2 grep. ✓
 - Out-of-scope items (full 2.68M, global RQ3 replay, Paper 2) → named in Task 10 Limitations + Task 9 Step 3. ✓
 
-**Placeholder scan:** `<fill>` macros in Task 3 are intentional — they are the deliverable of Task 2, with the exact source file named and a verification step. Every code step shows complete code. LaTeX prose steps specify the exact claims, the macros to cite, and the sentences to delete.
+**Placeholder scan:** no `<fill>` remain — Task 3's headroom macros carry concrete verified values (`\sfPq*`/`\sfNq*`/`\sfFiqa*`) produced and checked in Task 2. Every code step shows complete code. LaTeX prose steps specify the exact claims, the macros to cite, and the sentences to delete.
 
-**Type consistency:** `streamable_fraction(rows, L_ms, delta_wps, theta) -> (int,int)` and `load_rows(path) -> list[dict]` are defined in Task 1 and consumed identically in Tasks 1–2. Macro names defined in Task 3 (`\phiSufGnqOneM`, `\streamPctGnqOneM`, `\phiSufGfiqaBm`, `\phiSufGfiqaDe`, `\nGfiqaDe`, `\nGfiqaBm`, etc.) are the exact names cited in Tasks 4, 5, 8, 9. `hidden_latency_ms` signature matches `experiments/stabilization.py:100`.
+**Type consistency:** `streamable_fraction(rows, L_ms, delta_wps, theta) -> (int,int)`, `load_rows(path, t_col, fallback_col) -> list[dict]` (rows keyed by `t_star`), and `sweep(rows, Ls, delta_wps, theta) -> list[dict]` are defined in Tasks 1–2 and consumed identically. Macro names defined in Task 3 (`\phiSufGnqOneM`, `\sfPqTwentyfive`, `\sfNqTwentyfive`, `\sfFiqaTwentyfive`, `\phiSufGfiqaBm`, `\phiSufGfiqaDe`, `\nGfiqaDe`, `\nGfiqaBm`, etc.) are the exact names cited in Tasks 4, 5, 8, 9. `hidden_latency_ms` signature matches `experiments/stabilization.py:100`.
+
+**Headroom-framing revision (post-Task-2 sanity gate):** Task 2 is now an L-sweep (not a single L=600 number); the streamable fraction does not collapse at small L (long queries mask it) but the global−per-question gap widens with L. Spec §7 and Tasks 2/3/4/9 are aligned to this. User approved "L-dependent headroom."

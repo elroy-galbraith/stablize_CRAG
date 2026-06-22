@@ -94,17 +94,40 @@ The headline contrast is **CRAG-native per-question (v1)** vs **global corpus**.
   (optimistic) operationalization, not the headline. RQ4's type effect stays as a
   within-per-question observation.
 
-### 7. Headroom: recompute streamable fraction under the global corpus
-- **New analysis (cheap, arithmetic over committed CSVs):** compute the streamable
-  fraction at L=600, δ=3 using `t_suf_global`/`n_words` from
-  `results/global/confirm/*.csv` and `results/global/nq_tsuf.1m.csv`. Report
-  side-by-side with v1's 73.9% to quantify the collapse. Add a small script
-  `experiments/global_headroom.py` (see plan) that emits the global streamable
-  fraction + a summary JSON under `results/global/`. Note the θ caveat: v1's RQ2
-  sweeps a coverage threshold θ, but the global `t_suf` uses a hard sufficiency
-  criterion (gold appears in top-k), so θ is implicit, not a free knob, in the
-  global arm — compare at matched (L, δ) and state this explicitly rather than
-  implying a θ=0.8 cell for the global numbers.
+### 7. Headroom: streamable fraction is L-dependent (REVISED after the Task-2 sanity gate)
+- **Finding that revised this section:** the binary streamable fraction does NOT
+  collapse at v1's operating point (L=600, δ=3, θ=0.8). NQ/FiQA queries are long
+  (mean ~9–11 words), so even late stabilization leaves enough residual typing to
+  hide a *small* 600 ms tool call; the metric saturates. Worse, the gold-guaranteed
+  *subsamples* (gold+1k/10k) show inflated fractions because a small corpus makes
+  gold trivially retrievable. A single "73.9% → X%" number is therefore not honest.
+- **What we report instead — an L-sweep.** The streamable fraction is reported as a
+  function of tool latency L ∈ {600, 1500, 2500} ms (δ=3, θ=0.8), for v1's
+  per-question CRAG arm vs the **full-corpus** global arms (NQ ~1M, FiQA ~57k). The
+  global fraction is ≤ per-question at every L, and the gap **widens with L**: at
+  L≈2500 ms (the paper's own calibrated `fuse_ms≈2520`) the global NQ fraction
+  collapses to ≈0.09 vs per-question's ≈0.39. The artifact bites precisely in the
+  large-tool-latency regime that motivates streaming RAG; the small-L point v1
+  reported is where long queries mask it. Numbers (verified, per-q matches v1's grid
+  exactly):
+
+  | L (ms) | per-question CRAG | global NQ ~1M | global FiQA ~57k |
+  |---|---|---|---|
+  | 600  | 0.739 | 0.586 | 0.676 |
+  | 1500 | 0.545 | 0.272 | 0.488 |
+  | 2500 | 0.392 | 0.092 | 0.308 |
+
+- **Use full corpora for the headroom comparison**, not the gold-guaranteed
+  subsamples (those are for the φ_suf dose-response + retriever-generality only).
+- **θ caveat (unchanged):** v1's RQ2 sweeps a coverage threshold θ; the global
+  `t_suf` uses a hard sufficiency criterion (gold in top-k), so θ is implicit in the
+  global arm. Only the streamable threshold θ·L is shared. Compare at matched (L, δ)
+  and state this.
+- **Tooling:** `experiments/global_headroom.py` is generalized to (a) sweep multiple
+  L values and (b) read either schema — the global CSV (`t_suf_global`) or the v1
+  per-question CSV (`t_suf` with `t_sc` fallback, matching `run_study.py`) — so the
+  whole 3×L table is produced by one tool from committed CSVs, with no logic
+  duplicated from `run_study.py:_streamable_fraction`.
 - **RQ3 (H-bound replay):** keep as-is but scope it explicitly — it validates the
   bound *mechanism* under the per-question (optimistic) operationalization. State
   that a global-corpus replay is future work (the async harness retrieves over
