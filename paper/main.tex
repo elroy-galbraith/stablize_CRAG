@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
 
-\usepackage[review]{acl}
+\usepackage[preprint]{acl}
 \usepackage{times}
 \usepackage{latexsym}
 \usepackage[T1]{fontenc}
@@ -13,7 +13,8 @@
 
 \title{Tool-Intent Stabilization Is Operationalization-Dependent:\\
 A Cautionary Measurement Study of Streaming Retrieval-Augmented Generation}
-\author{Anonymous}
+\author{Elroy Galbraith \\
+  \texttt{elroy.galbraith@gmail.com}}
 
 % ===================================================================== %
 % RESULTS MACROS — populated from results/*.summary.json (see fill note) %
@@ -370,7 +371,8 @@ against the $H$ bound.
 
 \paragraph{Reproducibility.} The pipeline is training-free and CPU-only. Code and
 the derived $d^\star$ passage labels (the only non-trivial artifact, since CRAG
-ships none) are available at \url{[anonymized]}; every per-question metric and the
+ships none) are available at \url{https://github.com/elroy-galbraith/stablize_CRAG};
+every per-question metric and the
 full $(L,\delta,\theta)$ grid can be recomputed offline without re-running
 retrieval.
 
